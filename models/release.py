@@ -26,5 +26,26 @@ class Release(db.Model):
 
     issues = db.relationship('Issue', backref='release', lazy='dynamic')
 
+    @property
+    def total_issues(self):
+        return self.issues.count()
+
+    @property
+    def completed_issues(self):
+        return self.issues.filter(
+            Issue.status.in_(['resolved', 'closed'])
+        ).count() if self.issues.count() > 0 else 0
+
+    @property
+    def completion_rate(self):
+        total = self.total_issues
+        if total == 0:
+            return 0
+        return round((self.completed_issues / total) * 100, 1)
+
     def __repr__(self):
         return f'<Release {self.name} ({self.version})>'
+
+
+# Fix circular import for completed_issues property
+from models.issue import Issue

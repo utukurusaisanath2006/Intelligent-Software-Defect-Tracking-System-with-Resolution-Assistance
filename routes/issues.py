@@ -2,7 +2,7 @@
 
 import os
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
 from extensions import db
 from models.issue import Issue
@@ -11,6 +11,7 @@ from models.user import User
 from models.comment import Comment
 from models.attachment import Attachment
 from models.sprint import Sprint
+from models.release import Release
 from services.issue_service import IssueService
 from services.workflow_service import WorkflowService
 from services.classification_service import ClassificationService
@@ -214,6 +215,11 @@ def view_issue(key):
         status=Sprint.STATUS_ACTIVE
     ).all()
 
+    # Releases for this project
+    releases = Release.query.filter_by(
+        project_id=issue.project_id
+    ).order_by(Release.created_at.desc()).all()
+
     return render_template(
         'issues/detail.html',
         issue=issue,
@@ -221,6 +227,7 @@ def view_issue(key):
         suggestions=suggestions,
         assignable_users=assignable_users,
         sprints=sprints,
+        releases=releases,
         valid_statuses=Issue.VALID_STATUSES,
         valid_severities=Issue.VALID_SEVERITIES,
         valid_priorities=Issue.VALID_PRIORITIES,
@@ -309,6 +316,37 @@ def assign_issue(key):
     return redirect(url_for('issues.view_issue', key=key))
 
 
+@issues_bp.route('/<key>/assign-release', methods=['POST'])
+@login_required
+def assign_release(key):
+    """Assign or unassign an issue to/from a release."""
+    issue = IssueService.get_issue_by_key(key)
+    if not issue:
+        abort(404)
+
+    if not check_project_access(issue.project_id):
+        abort(403)
+
+    if not current_user.is_admin and not current_user.is_developer:
+        abort(403)
+
+    release_id = request.form.get('release_id', type=int)
+    if release_id:
+        release = Release.query.get(release_id)
+        if release and release.project_id == issue.project_id:
+            issue.release_id = release.id
+            db.session.commit()
+            flash(f'Issue assigned to release {release.name}.', 'success')
+        else:
+            flash('Invalid release selected.', 'error')
+    else:
+        issue.release_id = None
+        db.session.commit()
+        flash('Issue removed from release.', 'success')
+
+    return redirect(url_for('issues.view_issue', key=key))
+
+
 @issues_bp.route('/<key>/update', methods=['POST'])
 @login_required
 def update_issue(key):
@@ -393,3 +431,57 @@ def upload_attachment(key):
 
     flash(f'Attachment {filename} uploaded successfully.', 'success')
     return redirect(url_for('issues.view_issue', key=key))
+
+
+@issues_bp.route('/<key>/attachments/<int:attachment_id>/download', methods=['GET'])
+@login_required
+def download_attachment(key, attachment_id):
+    """Securely download an attachment after verifying project and issue access."""
+    issue = IssueService.get_issue_by_key(key)
+    if not issue:
+        abort(404)
+
+    if not check_project_access(issue.project_id):
+        abort(403)
+
+    # Validate file access strictly using database records
+    attachment = Attachment.query.filter_by(id=attachment_id, issue_id=issue.id).first()
+    if not attachment:
+        abort(404)
+
+    # Prevent path traversal and filename manipulation
+    stored_name = attachment.stored_filename
+    if not stored_name or '..' in stored_name or '/' in stored_name or '\\' in stored_name:
+        abort(400)
+
+    safe_stored_name = os.path.basename(stored_name)
+    if safe_stored_name != stored_name:
+        abort(400)
+
+    # Primary upload directory
+    upload_folder = os.path.abspath(current_app.config['UPLOAD_FOLDER'])
+    file_path = os.path.join(upload_folder, safe_stored_name)
+    target_abs = os.path.abspath(file_path)
+
+    # Verify target stays inside upload directory boundary
+    if not target_abs.startswith(upload_folder + os.sep) and target_abs != upload_folder:
+        abort(403)
+
+    # Check if file exists in primary upload directory; fallback to legacy static/uploads if needed
+    if not os.path.isfile(target_abs):
+        legacy_folder = os.path.abspath(os.path.join(current_app.root_path, 'static', 'uploads'))
+        legacy_file = os.path.join(legacy_folder, safe_stored_name)
+        legacy_abs = os.path.abspath(legacy_file)
+        if legacy_abs.startswith(legacy_folder + os.sep) and os.path.isfile(legacy_abs):
+            upload_folder = legacy_folder
+            safe_stored_name = os.path.basename(legacy_file)
+        else:
+            abort(404)
+
+    return send_from_directory(
+        directory=upload_folder,
+        path=safe_stored_name,
+        as_attachment=True,
+        download_name=attachment.original_filename,
+        mimetype=attachment.content_type
+    )

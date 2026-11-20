@@ -1,5 +1,7 @@
 """Authentication and role dashboard routing tests."""
 
+from extensions import db
+from models.user import User
 from tests.conftest import login
 
 
@@ -67,3 +69,135 @@ def test_user_registration(client, sample_data):
     }, follow_redirects=True)
     assert res.status_code == 200
     assert b'registered' in res.data
+    user = User.query.filter_by(username='newtester').first()
+    assert user is not None
+    assert user.role == User.ROLE_REPORTER
+
+
+def test_public_registration_default_role(client, sample_data):
+    """Public registration defaults to the reporter role without specifying role."""
+    res = client.post('/auth/register', data={
+        'first_name': 'Default',
+        'last_name': 'User',
+        'username': 'defaultuser',
+        'email': 'default@test.dev',
+        'password': 'password123',
+        'confirm_password': 'password123',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b'registered' in res.data
+    user = User.query.filter_by(username='defaultuser').first()
+    assert user is not None
+    assert user.role == User.ROLE_REPORTER
+
+
+def test_attempted_developer_registration_ignored(client, sample_data):
+    """Attempting to register with developer role must be ignored and assigned reporter."""
+    res = client.post('/auth/register', data={
+        'first_name': 'Sneaky',
+        'last_name': 'Dev',
+        'username': 'sneakydev',
+        'email': 'sneakydev@test.dev',
+        'role': 'developer',
+        'password': 'password123',
+        'confirm_password': 'password123',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b'registered' in res.data
+    user = User.query.filter_by(username='sneakydev').first()
+    assert user is not None
+    assert user.role == User.ROLE_REPORTER
+
+
+def test_attempted_admin_registration_ignored(client, sample_data):
+    """Attempting to register with admin role must be ignored and assigned reporter."""
+    res = client.post('/auth/register', data={
+        'first_name': 'Sneaky',
+        'last_name': 'Admin',
+        'username': 'sneakyadmin',
+        'email': 'sneakyadmin@test.dev',
+        'role': 'admin',
+        'password': 'password123',
+        'confirm_password': 'password123',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b'registered' in res.data
+    user = User.query.filter_by(username='sneakyadmin').first()
+    assert user is not None
+    assert user.role == User.ROLE_REPORTER
+
+
+def test_unauthorized_user_cannot_modify_role(client, sample_data):
+    """Non-admin user cannot access admin edit endpoint to change any user's role."""
+    login(client, 'reporter@test.dev')
+    rep = sample_data['reporter']
+    res = client.post(f'/admin/users/{rep.id}/edit', data={
+        'first_name': 'Hacked',
+        'last_name': 'QA',
+        'role': 'admin',
+    }, follow_redirects=False)
+    # admin blueprint before_request aborts with 403 for non-admins
+    assert res.status_code == 403
+    updated_rep = User.query.get(rep.id)
+    assert updated_rep.role == User.ROLE_REPORTER
+
+
+def test_admin_cannot_modify_own_role(client, sample_data):
+    """Admin cannot change their own role, even when other admins exist."""
+    admin1 = sample_data['admin']
+    # Create a second admin to ensure the 'last active admin' check isn't what prevents it
+    admin2 = User(
+        username='admin2_t',
+        email='admin2@test.dev',
+        first_name='Admin2',
+        last_name='User2',
+        role=User.ROLE_ADMIN,
+        is_active=True,
+    )
+    admin2.set_password('secret123')
+    db.session.add(admin2)
+    db.session.commit()
+
+    login(client, 'admin@test.dev')
+    res = client.post(f'/admin/users/{admin1.id}/edit', data={
+        'first_name': 'Admin',
+        'last_name': 'User',
+        'role': 'developer',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b'cannot modify your own role' in res.data
+    assert User.query.get(admin1.id).role == User.ROLE_ADMIN
+
+
+def test_authorized_administrator_role_modification(client, sample_data):
+    """Authorized admin can change another user's role."""
+    login(client, 'admin@test.dev')
+    rep = sample_data['reporter']
+    assert rep.role == User.ROLE_REPORTER
+
+    res = client.post(f'/admin/users/{rep.id}/edit', data={
+        'first_name': 'QA',
+        'last_name': 'Promoted',
+        'role': 'developer',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b'updated successfully' in res.data
+    updated_rep = User.query.get(rep.id)
+    assert updated_rep.role == User.ROLE_DEVELOPER
+
+
+def test_admin_role_change_rejects_invalid_role(client, sample_data):
+    """Admin submitting an invalid role string leaves existing role untouched."""
+    login(client, 'admin@test.dev')
+    dev = sample_data['dev']
+    assert dev.role == User.ROLE_DEVELOPER
+
+    res = client.post(f'/admin/users/{dev.id}/edit', data={
+        'first_name': 'Dev',
+        'last_name': 'Engineer',
+        'role': 'superadmin_invalid',
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    updated_dev = User.query.get(dev.id)
+    assert updated_dev.role == User.ROLE_DEVELOPER
+

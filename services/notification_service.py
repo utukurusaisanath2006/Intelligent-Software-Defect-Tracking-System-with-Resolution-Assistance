@@ -80,6 +80,13 @@ class NotificationService:
             )
             db.session.commit()
 
+            # Email notification (non-blocking failure handling)
+            try:
+                from services.email_service import EmailService
+                EmailService.send_issue_assigned(issue, assignee, actor)
+            except Exception:
+                pass
+
     @classmethod
     def notify_status_change(cls, issue, old_status, new_status, actor):
         """Notify reporter and assignee when status changes."""
@@ -102,6 +109,16 @@ class NotificationService:
             )
         db.session.commit()
 
+        # Email notification (non-blocking failure handling)
+        try:
+            from services.email_service import EmailService
+            for uid in recipients:
+                user = User.query.get(uid)
+                if user:
+                    EmailService.send_status_change(issue, old_status, new_status, actor, user)
+        except Exception:
+            pass
+
     @classmethod
     def notify_comment_added(cls, issue, comment, author):
         """Notify issue reporter and assignee when a comment is added."""
@@ -120,3 +137,57 @@ class NotificationService:
                 message=msg
             )
         db.session.commit()
+
+        # Email notification (non-blocking failure handling)
+        try:
+            from services.email_service import EmailService
+            for uid in recipients:
+                user = User.query.get(uid)
+                if user:
+                    EmailService.send_comment_added(issue, comment, author, user)
+        except Exception:
+            pass
+
+    @classmethod
+    def notify_release_created(cls, release, actor):
+        """Notify project members about a new release."""
+        members = ProjectMembership.query.filter_by(project_id=release.project_id).all()
+        msg = f"New release '{release.name}' ({release.version or 'Milestone'}) created for project {release.project.name}."
+        for member in members:
+            if member.user_id != actor.id:
+                cls.create_notification(
+                    user_id=member.user_id,
+                    n_type=Notification.TYPE_INFO,
+                    message=msg
+                )
+        db.session.commit()
+
+        # Email notification (non-blocking failure handling)
+        try:
+            from services.email_service import EmailService
+            EmailService.send_release_notification(release, actor, event='created')
+        except Exception:
+            pass
+
+    @classmethod
+    def notify_release_status_changed(cls, release, old_status, new_status, actor):
+        """Notify project members when release status changes."""
+        members = ProjectMembership.query.filter_by(project_id=release.project_id).all()
+        old_display = old_status.replace('_', ' ').title()
+        new_display = new_status.replace('_', ' ').title()
+        msg = f"Release '{release.name}' status updated from {old_display} to {new_display}."
+        for member in members:
+            if member.user_id != actor.id:
+                cls.create_notification(
+                    user_id=member.user_id,
+                    n_type=Notification.TYPE_INFO,
+                    message=msg
+                )
+        db.session.commit()
+
+        # Email notification (non-blocking failure handling)
+        try:
+            from services.email_service import EmailService
+            EmailService.send_release_notification(release, actor, event='status_changed', old_status=old_status, new_status=new_status)
+        except Exception:
+            pass

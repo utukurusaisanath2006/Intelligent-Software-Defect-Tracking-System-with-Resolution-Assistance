@@ -3,11 +3,13 @@
 import os
 import click
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import Flask, render_template, request, jsonify, url_for, abort
 from flask_login import current_user
 from markupsafe import Markup, escape
+from flask_wtf.csrf import CSRFError
 from config import config
-from extensions import db, login_manager, csrf
+from extensions import db, login_manager, csrf, migrate
+import models  # Register all models for SQLAlchemy metadata and migrations
 from routes import register_blueprints
 
 
@@ -18,13 +20,29 @@ def create_app(config_name=None):
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config.get(config_name, config['default']))
+    if os.environ.get('DATABASE_URL'):
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 
     # Ensure instance and upload directories exist
     os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+    # Safe migration strategy for legacy attachments: copy files from static/uploads to secure UPLOAD_FOLDER without deleting originals
+    legacy_upload_dir = os.path.join(app.root_path, 'static', 'uploads')
+    if os.path.isdir(legacy_upload_dir) and os.path.abspath(app.config['UPLOAD_FOLDER']) != os.path.abspath(legacy_upload_dir):
+        import shutil
+        for fname in os.listdir(legacy_upload_dir):
+            src_file = os.path.join(legacy_upload_dir, fname)
+            dst_file = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+            if os.path.isfile(src_file) and not os.path.exists(dst_file):
+                try:
+                    shutil.copy2(src_file, dst_file)
+                except Exception:
+                    pass
+
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db, render_as_batch=True)
     login_manager.init_app(app)
     csrf.init_app(app)
 
@@ -63,6 +81,12 @@ def create_app(config_name=None):
             'url_for_page': url_for_page,
         }
 
+    # Block direct unauthenticated access to legacy static/uploads directory
+    @app.before_request
+    def block_static_uploads():
+        if request.path.startswith('/static/uploads/'):
+            abort(404)
+
     # Security headers
     @app.after_request
     def set_security_headers(response):
@@ -72,6 +96,13 @@ def create_app(config_name=None):
         return response
 
     # Error handlers
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        reason = getattr(e, 'description', 'CSRF token missing or invalid')
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'error': f'CSRF validation failed: {reason}'}), 400
+        return render_template('errors/400.html', error=reason), 400
+
     @app.errorhandler(403)
     def forbidden(e):
         if request.path.startswith('/api/'):

@@ -45,11 +45,17 @@
 
             <div class="form-group">
                 <label class="form-label" for="role">Role</label>
+                {% if is_edit and user.id == current_user.id %}
+                <input type="text" class="form-input" value="{{ user.role|title }}" disabled>
+                <input type="hidden" name="role" value="{{ user.role }}">
+                <div class="form-hint" style="font-size:12px;color:var(--text-muted);margin-top:4px;">You cannot modify your own role.</div>
+                {% else %}
                 <select id="role" name="role" class="form-select">
                     {% for r in valid_roles %}
                     <option value="{{ r }}" {{ 'selected' if is_edit and user.role == r }}>{{ r|title }}</option>
                     {% endfor %}
                 </select>
+                {% endif %}
             </div>
 
             <div class="form-group">

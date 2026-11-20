@@ -6,4 +6,6 @@ venv/
 instance/*.db
 static/uploads/*
 !static/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
 .pytest_cache/

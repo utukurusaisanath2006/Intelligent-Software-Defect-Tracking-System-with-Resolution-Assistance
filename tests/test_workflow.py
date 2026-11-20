@@ -60,6 +60,93 @@ def test_role_restricted_transitions(app, sample_data):
     assert issue.resolved_at is None
 
 
+    # Developer CAN reopen resolved issue? No, reporter reopens it.
+    # Developer CAN transition reopened -> in_progress
+    ok, msg = WorkflowService.transition_issue(issue, 'in_progress', dev)
+    assert ok is True, msg
+    assert issue.status == 'in_progress'
+
+
+def test_developer_can_reject_code_review_to_in_progress(app, sample_data):
+    """Developer can reject/request changes on code_review and move it back to in_progress."""
+    dev = sample_data['dev']
+    issue = sample_data['issue2']  # Currently 'assigned'
+
+    # Move assigned -> in_progress -> code_review
+    ok, _ = WorkflowService.transition_issue(issue, 'in_progress', dev)
+    assert ok is True
+    ok, _ = WorkflowService.transition_issue(issue, 'code_review', dev)
+    assert ok is True
+    assert issue.status == 'code_review'
+
+    # Developer moves code_review back to in_progress (e.g., changes requested)
+    ok, msg = WorkflowService.transition_issue(issue, 'in_progress', dev, notes='Review rejected: fix unit tests')
+    assert ok is True, msg
+    assert issue.status == 'in_progress'
+
+
+def test_developer_restricted_transitions(app, sample_data):
+    """Developer cannot perform unauthorized state transitions."""
+    dev = sample_data['dev']
+    issue1 = sample_data['issue1']  # 'reported'
+    issue2 = sample_data['issue2']  # 'assigned'
+
+    # Developer cannot triage reported issues
+    ok, _ = WorkflowService.transition_issue(issue1, 'triaging', dev)
+    assert ok is False
+
+    # Developer cannot close assigned issues
+    ok, _ = WorkflowService.transition_issue(issue2, 'closed', dev)
+    assert ok is False
+
+    # Developer cannot jump assigned -> resolved
+    ok, _ = WorkflowService.transition_issue(issue2, 'resolved', dev)
+    assert ok is False
+
+
+def test_reporter_restricted_transitions(app, sample_data):
+    """Reporter cannot perform developer or admin state transitions."""
+    reporter = sample_data['reporter']
+    issue2 = sample_data['issue2']  # 'assigned'
+
+    # Reporter cannot start work
+    ok, _ = WorkflowService.transition_issue(issue2, 'in_progress', reporter)
+    assert ok is False
+
+    # Reporter cannot close assigned issue
+    ok, _ = WorkflowService.transition_issue(issue2, 'closed', reporter)
+    assert ok is False
+
+
+def test_api_transition_endpoint_validation(client, sample_data):
+    """API transition endpoint enforces authentication, authorization, and state rules."""
+    login(client, 'dev@test.dev')
+
+    # Valid transition via API: assigned -> in_progress
+    res = client.post('/api/v1/issues/CORE-2/transition', json={'target_status': 'in_progress'})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data['success'] is True
+    assert data['new_status'] == 'in_progress'
+
+    # Invalid status name
+    res = client.post('/api/v1/issues/CORE-2/transition', json={'target_status': 'invalid_status_xyz'})
+    assert res.status_code == 400
+    assert 'Invalid status' in res.get_json()['error']
+
+    # Invalid transition (in_progress -> closed not allowed for developer)
+    res = client.post('/api/v1/issues/CORE-2/transition', json={'target_status': 'closed'})
+    assert res.status_code == 400
+    assert 'not permitted' in res.get_json()['error']
+
+    # Transition to code_review and then reject back to in_progress via API
+    res = client.post('/api/v1/issues/CORE-2/transition', json={'target_status': 'code_review'})
+    assert res.status_code == 200
+    res = client.post('/api/v1/issues/CORE-2/transition', json={'target_status': 'in_progress', 'notes': 'Changes requested'})
+    assert res.status_code == 200
+    assert res.get_json()['new_status'] == 'in_progress'
+
+
 def test_http_transition_endpoint_enforces_rules(client, sample_data):
     login(client, 'reporter@test.dev')
     res = client.post('/issues/CORE-2/transition', data={'target_status': 'in_progress'}, follow_redirects=True)

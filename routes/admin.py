@@ -142,6 +142,11 @@ def edit_user(user_id):
                 flash('Cannot revoke admin role from the sole active administrator.', 'error')
                 return render_template('admin/user_form.html', is_edit=True, user=user, valid_roles=User.VALID_ROLES)
 
+        # Prevent users from modifying their own role
+        if user.id == current_user.id and new_role and new_role != user.role:
+            flash('You cannot modify your own role.', 'error')
+            return render_template('admin/user_form.html', is_edit=True, user=user, valid_roles=User.VALID_ROLES)
+
         if new_role in User.VALID_ROLES:
             user.role = new_role
 

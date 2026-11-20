@@ -1,0 +1,9 @@
+{% extends "base_unauth.html" %}
+{% block title %}400 Bad Request — IntelliTrack{% endblock %}
+{% block content %}
+<div class="error-page">
+    <h1 class="error-code">400</h1>
+    <p class="error-message">Bad Request — {{ error or 'CSRF token missing or invalid. Please refresh the page and try again.' }}</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Back to Dashboard</a>
+</div>
+{% endblock %}

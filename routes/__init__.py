@@ -8,6 +8,7 @@ def register_blueprints(app):
     from routes.projects import projects_bp
     from routes.admin import admin_bp
     from routes.sprints import sprints_bp
+    from routes.releases import releases_bp
     from routes.api import api_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -16,4 +17,5 @@ def register_blueprints(app):
     app.register_blueprint(projects_bp, url_prefix='/projects')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(sprints_bp, url_prefix='/sprints')
+    app.register_blueprint(releases_bp, url_prefix='/releases')
     app.register_blueprint(api_bp, url_prefix='/api/v1')

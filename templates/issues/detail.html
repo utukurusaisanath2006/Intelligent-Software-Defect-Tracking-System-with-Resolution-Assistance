@@ -173,6 +173,25 @@
                 {% if issue.sprint %}
                 <div class="detail-row"><span class="detail-label">Sprint</span><a href="{{ url_for('sprints.view_sprint', sprint_id=issue.sprint.id) }}">{{ issue.sprint.name }}</a></div>
                 {% endif %}
+                <div class="detail-row">
+                    <span class="detail-label">Release</span>
+                    {% if issue.release %}
+                    <a href="{{ url_for('releases.view_release', release_id=issue.release.id) }}">{{ issue.release.name }} ({{ issue.release.version or 'Milestone' }})</a>
+                    {% else %}
+                    <span class="text-muted">None</span>
+                    {% endif %}
+                </div>
+                {% if (current_user.is_admin or current_user.is_developer) and releases %}
+                <form method="POST" action="{{ url_for('issues.assign_release', key=issue.issue_key) }}" class="detail-row-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="release_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">No Release Assigned</option>
+                        {% for r in releases %}
+                        <option value="{{ r.id }}" {{ 'selected' if issue.release_id == r.id }}>{{ r.name }} ({{ r.version or r.status|title }})</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% endif %}
                 <div class="detail-divider"></div>
                 <div class="detail-row"><span class="detail-label">Created</span><span class="text-muted mono">{{ issue.created_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
                 <div class="detail-row"><span class="detail-label">Updated</span><span class="text-muted mono">{{ issue.updated_at.strftime('%Y-%m-%d %H:%M') if issue.updated_at else '—' }}</span></div>
@@ -188,7 +207,7 @@
             <div class="card-body">
                 {% for att in issue.attachments.all() %}
                 <div class="attachment-item">
-                    <a href="{{ url_for('static', filename='uploads/' + att.stored_filename) }}" target="_blank">{{ att.original_filename }}</a>
+                    <a href="{{ url_for('issues.download_attachment', key=issue.issue_key, attachment_id=att.id) }}">{{ att.original_filename }}</a>
                     <small class="text-muted">({{ (att.file_size / 1024)|round(1) }} KB)</small>
                 </div>
                 {% else %}

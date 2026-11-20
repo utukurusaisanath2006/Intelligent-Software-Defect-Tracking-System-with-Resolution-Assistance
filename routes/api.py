@@ -2,7 +2,7 @@
 
 from flask import Blueprint, jsonify, request, abort
 from flask_login import login_required, current_user
-from extensions import db, csrf
+from extensions import db
 from models.issue import Issue
 from models.project import Project
 from models.notification import Notification
@@ -14,7 +14,6 @@ from services.analytics_service import AnalyticsService
 from services.notification_service import NotificationService
 
 api_bp = Blueprint('api', __name__)
-csrf.exempt(api_bp)
 
 
 @api_bp.route('/issues', methods=['GET'])

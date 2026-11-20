@@ -28,7 +28,8 @@ class WorkflowService:
         'developer': {
             'assigned': ['in_progress'],
             'in_progress': ['code_review', 'assigned'],
-            'code_review': ['qa_verification'],
+            'code_review': ['qa_verification', 'in_progress'],
+            'reopened': ['in_progress'],
         },
         'reporter': {
             'qa_verification': ['resolved', 'in_progress'],

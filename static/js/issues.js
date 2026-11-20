@@ -32,9 +32,14 @@
         suggestBtn.textContent = 'Analyzing...';
 
         try {
+          const csrfToken = (window.getCsrfToken ? window.getCsrfToken() : '') ||
+            (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
           const res = await fetch('/api/v1/classify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
             body: JSON.stringify({
               title,
               description,

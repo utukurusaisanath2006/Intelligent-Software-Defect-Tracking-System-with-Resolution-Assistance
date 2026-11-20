@@ -28,11 +28,11 @@
             <input type="email" id="email" name="email" class="form-input" required>
         </div>
         <div class="form-group">
-            <label class="form-label" for="role">Role</label>
-            <select id="role" name="role" class="form-select">
-                <option value="reporter">Reporter / QA</option>
-                <option value="developer">Developer</option>
-            </select>
+            <label class="form-label">Account Role</label>
+            <div style="padding: 6px 0;">
+                <span class="badge badge-role badge-reporter">Reporter / QA</span>
+                <small class="form-hint" style="display:block;margin-top:6px">New accounts are assigned the Reporter / QA role by default. Elevated roles are granted by an administrator.</small>
+            </div>
         </div>
         <div class="form-group">
             <label class="form-label" for="password">Password</label>

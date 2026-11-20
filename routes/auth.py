@@ -61,7 +61,6 @@ def register():
         last_name = request.form.get('last_name', '').strip()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
-        role = request.form.get('role', User.ROLE_REPORTER)
 
         # Validation
         if not username or not email or not password:
@@ -84,8 +83,9 @@ def register():
             flash('This username is already taken.', 'error')
             return render_template('auth/register.html')
 
-        if role not in User.VALID_ROLES or role == User.ROLE_ADMIN:
-            role = User.ROLE_REPORTER
+        # Public self-registration strictly assigns the reporter role.
+        # Any role parameter submitted by the client is ignored to prevent privilege escalation.
+        role = User.ROLE_REPORTER
 
         user = User(
             username=username,

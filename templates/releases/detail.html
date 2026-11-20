@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ release.name }} ({{ release.version or 'Milestone' }}) — IntelliTrack{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('releases.list_releases') }}" class="breadcrumb-item">Releases</a>
+<span class="breadcrumb-sep">/</span>
+<span class="breadcrumb-item">{{ release.name }}</span>
+{% endblock %}
+
+{% block page_title %}{{ release.name }}{% endblock %}
+
+{% block page_actions %}
+{% if can_manage %}
+<div style="display:flex;gap:8px">
+    {% if release.status == 'planning' %}
+    <form method="POST" action="{{ url_for('releases.update_release_status', release_id=release.id) }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="status" value="in_progress">
+        <button type="submit" class="btn btn-secondary">Start Release (In Progress)</button>
+    </form>
+    {% elif release.status == 'in_progress' %}
+    <form method="POST" action="{{ url_for('releases.update_release_status', release_id=release.id) }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="status" value="released">
+        <button type="submit" class="btn btn-primary">Mark as Released</button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('releases.edit_release', release_id=release.id) }}" class="btn btn-secondary">Edit</a>
+    <form method="POST" action="{{ url_for('releases.delete_release', release_id=release.id) }}" style="display:inline" onsubmit="return confirm('Delete release {{ release.name }}? Associated issues will be kept and disassociated safely.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Overview Cards -->
+<div class="metrics-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px">
+    <div class="card metric-card">
+        <div class="metric-value">{{ release.version or '—' }}</div>
+        <div class="metric-label">Version</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-value">
+            <span class="badge badge-{{ release.status }}">{{ release.status|replace('_',' ')|title }}</span>
+        </div>
+        <div class="metric-label">Status</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-value">{{ release.release_date.strftime('%b %d, %Y') if release.release_date else 'Not set' }}</div>
+        <div class="metric-label">Target Date</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-value">{{ release.completed_issues }} / {{ release.total_issues }}</div>
+        <div class="metric-label">Completion ({{ release.completion_rate }}%)</div>
+    </div>
+</div>
+
+{% if release.description %}
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header"><h3>Description &amp; Release Notes</h3></div>
+    <div class="card-body">
+        <p style="margin:0;white-space:pre-wrap">{{ release.description }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Associated Issues Section -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Assigned Issues ({{ release.total_issues }})</h3>
+        {% if can_manage and backlog_issues %}
+        <button class="btn btn-sm btn-primary" onclick="document.getElementById('attachIssueModal').style.display='flex'">+ Add Issue</button>
+        {% endif %}
+    </div>
+    <div class="card-body" style="padding:0">
+        {% if issues %}
+        <div class="table-responsive">
+            <table class="table table-hover" style="margin:0">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assignee</th>
+                        {% if can_manage %}<th>Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for issue in issues %}
+                    <tr>
+                        <td><a href="{{ url_for('issues.view_issue', key=issue.issue_key) }}" class="mono"><strong>{{ issue.issue_key }}</strong></a></td>
+                        <td><a href="{{ url_for('issues.view_issue', key=issue.issue_key) }}">{{ issue.title }}</a></td>
+                        <td><span class="badge badge-type badge-{{ issue.issue_type }}">{{ issue.issue_type|title }}</span></td>
+                        <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                        <td><span class="badge badge-priority badge-{{ issue.priority }}">{{ issue.priority|title }}</span></td>
+                        <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                        <td>{{ issue.assignee.full_name if issue.assignee else 'Unassigned' }}</td>
+                        {% if can_manage %}
+                        <td>
+                            <form method="POST" action="{{ url_for('releases.remove_issue_from_release', release_id=release.id) }}" style="display:inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="Remove from release">&times; Remove</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-sm" style="padding:24px;text-align:center">
+            <p style="color:var(--text-muted);margin:0">No issues currently associated with this release.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Attach Issue Modal -->
+{% if can_manage and backlog_issues %}
+<div class="modal" id="attachIssueModal" style="display:none">
+    <div class="modal-overlay" onclick="this.parentElement.style.display='none'"></div>
+    <div class="modal-content" style="max-width:500px">
+        <div class="modal-header">
+            <h3>Add Issue to {{ release.name }}</h3>
+            <button class="modal-close" onclick="this.closest('.modal').style.display='none'">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('releases.add_issue_to_release', release_id=release.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Select Issue</label>
+                    <select name="issue_id" class="form-select" required>
+                        <option value="">-- Select issue from {{ release.project.name }} --</option>
+                        {% for issue in backlog_issues %}
+                        <option value="{{ issue.id }}">[{{ issue.issue_key }}] {{ issue.title[:50] }} ({{ issue.status_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px">
+                <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add to Release</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
