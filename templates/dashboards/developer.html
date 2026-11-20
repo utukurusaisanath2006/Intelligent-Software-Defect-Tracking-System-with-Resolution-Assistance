@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Developer Dashboard — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Dashboard</span>{% endblock %}
+{% block page_title %}Developer Workspace{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('issues.list_issues', assignee_id=current_user.id) }}" class="btn btn-secondary">View All Assigned</a>
+{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.assigned_open }}</div>
+        <div class="stat-label">Assigned Open</div>
+    </div>
+    <div class="stat-card stat-card-warning">
+        <div class="stat-value">{{ stats.in_progress }}</div>
+        <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card stat-card-danger">
+        <div class="stat-value">{{ stats.critical }}</div>
+        <div class="stat-label">Critical Issues</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.awaiting_qa }}</div>
+        <div class="stat-label">Awaiting QA</div>
+    </div>
+    <div class="stat-card stat-card-success">
+        <div class="stat-value">{{ stats.resolved_count }}</div>
+        <div class="stat-label">Resolved</div>
+    </div>
+</div>
+
+<div class="content-section">
+    <h2 class="section-title">Work Queue</h2>
+    {% if work_queue %}
+    <div class="table-responsive">
+        <table class="table table-hover table-compact">
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Severity</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Reporter</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in work_queue %}
+                <tr onclick="window.location='{{ url_for('issues.view_issue', key=issue.issue_key) }}'" style="cursor:pointer">
+                    <td><span class="mono">{{ issue.issue_key }}</span></td>
+                    <td>{{ issue.title|truncate(50) }}</td>
+                    <td><span class="text-muted">{{ issue.project.key }}</span></td>
+                    <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                    <td><span class="badge badge-priority badge-{{ issue.priority }}">{{ issue.priority|title }}</span></td>
+                    <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                    <td>{{ issue.reporter.full_name if issue.reporter else '' }}</td>
+                    <td class="text-muted">{{ issue.updated_at.strftime('%b %d') if issue.updated_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state-sm"><p>No issues currently assigned to you. Nice work!</p></div>
+    {% endif %}
+</div>
+
+{% if recent_activities %}
+<div class="content-section">
+    <h2 class="section-title">Recent Activity</h2>
+    <div class="timeline">
+        {% for act in recent_activities %}
+        <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+                <span class="timeline-actor">{{ act.actor.full_name if act.actor else 'System' }}</span>
+                <span class="timeline-event">{{ act.event_display }}</span>
+                {% if act.issue %}<a href="{{ url_for('issues.view_issue', key=act.issue.issue_key) }}" class="mono">{{ act.issue.issue_key }}</a>{% endif %}
+                <span class="timeline-time">{{ act.created_at.strftime('%b %d, %H:%M') }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

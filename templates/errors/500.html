@@ -1,0 +1,9 @@
+{% extends "base_unauth.html" %}
+{% block title %}500 Server Error — IntelliTrack{% endblock %}
+{% block content %}
+<div class="error-page">
+    <h1 class="error-code">500</h1>
+    <p class="error-message">An unexpected error occurred. Please try again later.</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Back to Dashboard</a>
+</div>
+{% endblock %}

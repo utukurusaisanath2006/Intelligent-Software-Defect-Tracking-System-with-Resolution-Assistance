@@ -1,0 +1,29 @@
+{% extends "base_unauth.html" %}
+{% block title %}Sign In — IntelliTrack{% endblock %}
+{% block content %}
+<div class="auth-card">
+    <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h1 class="auth-title">IntelliTrack</h1>
+        <p class="auth-subtitle">Intelligent Defect Tracking</p>
+    </div>
+    <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-input" required autofocus placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-input" required placeholder="Enter your password">
+        </div>
+        <div class="form-group form-check">
+            <label><input type="checkbox" name="remember"> Remember me</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+    </form>
+    <div class="auth-footer">
+        <p>Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a></p>
+    </div>
+</div>
+{% endblock %}

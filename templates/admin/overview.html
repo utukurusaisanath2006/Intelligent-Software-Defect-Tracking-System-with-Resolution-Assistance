@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Admin Overview — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Overview</span>{% endblock %}
+{% block page_title %}System Overview{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary">Analytics &amp; Export</a>
+<a href="{{ url_for('issues.create_issue') }}" class="btn btn-primary">New Issue</a>
+{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_issues }}</div>
+        <div class="stat-label">Total Issues</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.open_issues }}</div>
+        <div class="stat-label">Open Issues</div>
+    </div>
+    <div class="stat-card stat-card-danger">
+        <div class="stat-value">{{ stats.critical_issues }}</div>
+        <div class="stat-label">Critical Open</div>
+    </div>
+    <div class="stat-card stat-card-warning">
+        <div class="stat-value">{{ stats.awaiting_verification }}</div>
+        <div class="stat-label">Awaiting QA</div>
+    </div>
+    <div class="stat-card stat-card-success">
+        <div class="stat-value">{{ stats.resolved_issues + stats.closed_issues }}</div>
+        <div class="stat-label">Resolved &amp; Closed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.active_projects }}</div>
+        <div class="stat-label">Active Projects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.active_users }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="card">
+        <div class="card-header"><h3>Issues by Status</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="statusChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>Issues by Severity</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="severityChart"></canvas></div></div>
+    </div>
+</div>
+
+<div class="content-grid">
+    <div class="content-section">
+        <h2 class="section-title">Recent Issues</h2>
+        {% if recent_issues %}
+        <div class="table-responsive">
+            <table class="table table-hover table-compact">
+                <thead>
+                    <tr><th>Key</th><th>Title</th><th>Project</th><th>Severity</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for issue in recent_issues %}
+                    <tr onclick="window.location='{{ url_for('issues.view_issue', key=issue.issue_key) }}'" style="cursor:pointer">
+                        <td><span class="mono">{{ issue.issue_key }}</span></td>
+                        <td>{{ issue.title|truncate(45) }}</td>
+                        <td><span class="mono text-muted">{{ issue.project.key }}</span></td>
+                        <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                        <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-sm"><p>No issues recorded yet.</p></div>
+        {% endif %}
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title">Recent Audit Activity</h2>
+        {% if recent_activities %}
+        <div class="timeline">
+            {% for act in recent_activities[:8] %}
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <strong>{{ act.actor.full_name if act.actor else 'System' }}</strong>
+                    <span>{{ act.event_display }}</span>
+                    {% if act.issue %}<a href="{{ url_for('issues.view_issue', key=act.issue.issue_key) }}" class="mono">{{ act.issue.issue_key }}</a>{% endif %}
+                    <span class="timeline-time">{{ act.created_at.strftime('%b %d, %H:%M') }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-sm"><p>No recent activity.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

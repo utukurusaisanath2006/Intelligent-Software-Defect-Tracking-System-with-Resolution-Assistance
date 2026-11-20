@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Issues — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Issues</span>{% endblock %}
+{% block page_title %}All Issues{% endblock %}
+{% block page_actions %}<a href="{{ url_for('issues.create_issue') }}" class="btn btn-primary">New Issue</a>{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('issues.list_issues') }}" class="filter-form">
+        <div class="filter-group">
+            <input type="text" name="q" class="form-input" placeholder="Search issues..." value="{{ filters.search or '' }}">
+        </div>
+        <div class="filter-group">
+            <select name="project_id" class="form-select form-select-sm">
+                <option value="">All Projects</option>
+                {% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if filters.project_id|string == p.id|string }}>{{ p.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="status" class="form-select form-select-sm">
+                <option value="">All Statuses</option>
+                {% for s in valid_statuses %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s|replace('_',' ')|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="severity" class="form-select form-select-sm">
+                <option value="">All Severities</option>
+                {% for s in valid_severities %}<option value="{{ s }}" {{ 'selected' if filters.severity == s }}>{{ s|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="priority" class="form-select form-select-sm">
+                <option value="">All Priorities</option>
+                {% for p in valid_priorities %}<option value="{{ p }}" {{ 'selected' if filters.priority == p }}>{{ p|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="issue_type" class="form-select form-select-sm">
+                <option value="">All Types</option>
+                {% for t in valid_types %}<option value="{{ t }}" {{ 'selected' if filters.issue_type == t }}>{{ t|replace('_',' ')|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        <a href="{{ url_for('issues.list_issues') }}" class="btn btn-sm">Clear</a>
+    </form>
+</div>
+
+{% if issues %}
+<div class="table-responsive">
+    <table class="table table-hover table-compact">
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Project</th>
+                <th>Severity</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Assignee</th>
+                <th>Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for issue in issues %}
+            <tr onclick="window.location='{{ url_for('issues.view_issue', key=issue.issue_key) }}'" style="cursor:pointer">
+                <td><span class="mono">{{ issue.issue_key }}</span></td>
+                <td class="issue-title-cell">{{ issue.title|truncate(55) }}</td>
+                <td><span class="text-muted">{{ issue.type_display }}</span></td>
+                <td><span class="mono text-muted">{{ issue.project.key }}</span></td>
+                <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                <td><span class="badge badge-priority badge-{{ issue.priority }}">{{ issue.priority|title }}</span></td>
+                <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                <td>{{ issue.assignee.full_name if issue.assignee else '—' }}</td>
+                <td class="text-muted text-nowrap">{{ issue.updated_at.strftime('%b %d') if issue.updated_at else '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination-wrapper">
+    <span class="text-muted">Showing {{ issues|length }} of {{ pagination.total }} issues</span>
+    {% include 'components/pagination.html' %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h3 class="empty-state-title">No issues found</h3>
+    <p class="empty-state-desc">Try adjusting your filters or report a new issue.</p>
+    <a href="{{ url_for('issues.create_issue') }}" class="btn btn-primary">Report Issue</a>
+</div>
+{% endif %}
+{% endblock %}

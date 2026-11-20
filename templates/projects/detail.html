@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — IntelliTrack{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('projects.list_projects') }}" class="breadcrumb-item">Projects</a>
+<span class="breadcrumb-sep">/</span>
+<span class="breadcrumb-item">{{ project.name }}</span>
+{% endblock %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block page_subtitle %}<span class="mono text-muted">{{ project.key }}</span> — {{ project.description|truncate(100) }}{% endblock %}
+{% block content %}
+<div class="metrics-grid">
+    <div class="stat-card"><div class="stat-value">{{ stats.total_issues }}</div><div class="stat-label">Total Issues</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.open_issues }}</div><div class="stat-label">Open</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.critical_issues }}</div><div class="stat-label">Critical</div></div>
+    <div class="stat-card"><div class="stat-value">{{ stats.resolved_issues }}</div><div class="stat-label">Resolved</div></div>
+</div>
+
+<div class="content-section">
+    <h2 class="section-title">Recent Issues</h2>
+    {% if issues %}
+    <div class="table-responsive">
+        <table class="table table-hover table-compact">
+            <thead><tr><th>Key</th><th>Title</th><th>Severity</th><th>Status</th><th>Assignee</th></tr></thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr onclick="window.location='{{ url_for('issues.view_issue', key=issue.issue_key) }}'" style="cursor:pointer">
+                    <td><span class="mono">{{ issue.issue_key }}</span></td>
+                    <td>{{ issue.title|truncate(60) }}</td>
+                    <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                    <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                    <td>{{ issue.assignee.full_name if issue.assignee else 'Unassigned' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state-sm"><p>No issues in this project yet.</p></div>
+    {% endif %}
+</div>
+
+{% if sprints %}
+<div class="content-section">
+    <h2 class="section-title">Sprints</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Sprint</th><th>Status</th><th>Issues</th><th>Completion</th></tr></thead>
+            <tbody>
+                {% for sprint in sprints %}
+                <tr onclick="window.location='{{ url_for('sprints.view_sprint', sprint_id=sprint.id) }}'" style="cursor:pointer">
+                    <td>{{ sprint.name }}</td>
+                    <td><span class="badge badge-{{ sprint.status }}">{{ sprint.status|title }}</span></td>
+                    <td>{{ sprint.total_issues }}</td>
+                    <td>{{ sprint.completion_rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

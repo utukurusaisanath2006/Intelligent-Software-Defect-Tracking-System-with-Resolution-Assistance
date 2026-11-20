@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Analytics &amp; Reports — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Analytics</span>{% endblock %}
+{% block page_title %}Quality Analytics &amp; Reports{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.export_csv', project_id=selected_project_id) if selected_project_id else url_for('admin.export_csv') }}" class="btn btn-primary">Export CSV Report</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('admin.analytics') }}" class="filter-form">
+        <div class="filter-group">
+            <select name="project_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Active Projects</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}" {{ 'selected' if selected_project_id == p.id }}>{{ p.name }} ({{ p.key }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if selected_project_id %}
+        <a href="{{ url_for('admin.analytics') }}" class="btn btn-sm">Clear Filter</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Key Analytical Metrics -->
+<div class="metrics-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_issues }}</div>
+        <div class="stat-label">Total Defects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ resolution_times.avg_hours }}h</div>
+        <div class="stat-label">Avg Resolution Time</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ resolution_times.median_hours }}h</div>
+        <div class="stat-label">Median Resolution Time</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ backlog_health.health_score }}/100</div>
+        <div class="stat-label">Backlog Health Score</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ backlog_health.unassigned }}</div>
+        <div class="stat-label">Unassigned Open</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid" data-project-id="{{ selected_project_id or '' }}">
+    <div class="card">
+        <div class="card-header"><h3>Status Distribution</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="statusChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>Severity Breakdown</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="severityChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>Category Distribution</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>Defects Reported (Last 30 Days)</h3></div>
+        <div class="card-body"><div class="chart-container"><canvas id="timelineChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- Project Comparison & Developer Workload -->
+<div class="content-grid">
+    <div class="content-section">
+        <h2 class="section-title">Project Defect Comparison</h2>
+        {% if project_comparison %}
+        <div class="table-responsive">
+            <table class="table table-compact">
+                <thead>
+                    <tr><th>Project</th><th>Total</th><th>Open</th><th>Critical</th><th>Resolved</th><th>Resolution Rate</th></tr>
+                </thead>
+                <tbody>
+                    {% for pc in project_comparison %}
+                    <tr>
+                        <td><strong>{{ pc.name }}</strong> <span class="mono text-muted">({{ pc.key }})</span></td>
+                        <td>{{ pc.total }}</td>
+                        <td>{{ pc.open }}</td>
+                        <td><span class="{{ 'text-danger' if pc.critical > 0 }}">{{ pc.critical }}</span></td>
+                        <td>{{ pc.resolved }}</td>
+                        <td class="mono">{{ pc.resolution_rate }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-sm"><p>No project data available.</p></div>
+        {% endif %}
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title">Developer Workload</h2>
+        {% if developer_workload %}
+        <div class="table-responsive">
+            <table class="table table-compact">
+                <thead>
+                    <tr><th>Developer</th><th>Assigned</th><th>In Progress</th><th>Resolved</th><th>Active Load</th></tr>
+                </thead>
+                <tbody>
+                    {% for dw in developer_workload %}
+                    <tr>
+                        <td><strong>{{ dw.name }}</strong></td>
+                        <td>{{ dw.assigned }}</td>
+                        <td>{{ dw.in_progress }}</td>
+                        <td>{{ dw.resolved }}</td>
+                        <td class="mono">{{ dw.total_active }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-sm"><p>No active developers found.</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

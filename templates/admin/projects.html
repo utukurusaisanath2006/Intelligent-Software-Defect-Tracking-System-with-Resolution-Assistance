@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Project Administration — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Projects</span>{% endblock %}
+{% block page_title %}Project Administration{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.create_project') }}" class="btn btn-primary">New Project</a>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="table table-compact">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Key</th>
+                <th>Status</th>
+                <th>Open Issues</th>
+                <th>Members</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in projects %}
+            <tr>
+                <td><a href="{{ url_for('projects.view_project', project_id=p.id) }}"><strong>{{ p.name }}</strong></a></td>
+                <td><span class="mono">{{ p.key }}</span></td>
+                <td>
+                    <span class="badge badge-status {{ 'badge-resolved' if p.status == 'active' else 'badge-closed' }}">
+                        {{ p.status|title }}
+                    </span>
+                </td>
+                <td>{{ p.open_issue_count }}</td>
+                <td>{{ p.member_count }}</td>
+                <td class="text-muted mono">{{ p.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <a href="{{ url_for('admin.edit_project', project_id=p.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                        {% if p.status == 'active' %}
+                        <form method="POST" action="{{ url_for('admin.archive_project', project_id=p.id) }}" style="display:inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Archive this project? Historical issues will be preserved.')">Archive</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-muted" style="text-align:center;padding:24px">No projects configured yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

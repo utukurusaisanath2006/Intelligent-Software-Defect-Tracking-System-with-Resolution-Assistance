@@ -1,0 +1,8 @@
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <h3 class="empty-state-title">{{ title|default("No data available") }}</h3>
+    <p class="empty-state-desc">{{ description|default("There's nothing to display here yet.") }}</p>
+    {% if action_url is defined and action_url %}
+    <a href="{{ action_url }}" class="btn btn-primary">{{ action_label|default("Get Started") }}</a>
+    {% endif %}
+</div>

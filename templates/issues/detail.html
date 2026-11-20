@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}{{ issue.issue_key }} — IntelliTrack{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('issues.list_issues') }}" class="breadcrumb-item">Issues</a>
+<span class="breadcrumb-sep">/</span>
+<span class="breadcrumb-item">{{ issue.issue_key }}</span>
+{% endblock %}
+{% block page_title %}
+<div class="issue-header-title">
+    <span class="mono issue-key-lg">{{ issue.issue_key }}</span>
+    <span>{{ issue.title }}</span>
+</div>
+{% endblock %}
+{% block page_subtitle %}
+<div class="issue-meta-badges">
+    <span class="badge badge-type">{{ issue.type_display }}</span>
+    <span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span>
+    <span class="badge badge-priority badge-{{ issue.priority }}">{{ issue.priority|title }}</span>
+    <span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="issue-detail-layout">
+    <div class="issue-main">
+        <!-- Description -->
+        <div class="card">
+            <div class="card-header"><h3>Description</h3></div>
+            <div class="card-body">
+                {% if issue.description %}
+                <div class="issue-description">{{ issue.description|nl2br }}</div>
+                {% else %}
+                <p class="text-muted">No description provided.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reproduction Details -->
+        {% if issue.steps_to_reproduce or issue.expected_result or issue.actual_result %}
+        <div class="card">
+            <div class="card-header"><h3>Reproduction Details</h3></div>
+            <div class="card-body">
+                {% if issue.steps_to_reproduce %}
+                <div class="detail-section"><h4>Steps to Reproduce</h4><pre class="detail-pre">{{ issue.steps_to_reproduce }}</pre></div>
+                {% endif %}
+                {% if issue.expected_result %}
+                <div class="detail-section"><h4>Expected Result</h4><p>{{ issue.expected_result }}</p></div>
+                {% endif %}
+                {% if issue.actual_result %}
+                <div class="detail-section"><h4>Actual Result</h4><p>{{ issue.actual_result }}</p></div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Root Cause & Resolution -->
+        {% if issue.root_cause or issue.resolution_notes or current_user.is_admin or current_user.id == issue.assignee_id %}
+        <div class="card">
+            <div class="card-header"><h3>Investigation &amp; Resolution</h3></div>
+            <div class="card-body">
+                {% if current_user.is_admin or current_user.id == issue.assignee_id %}
+                <form method="POST" action="{{ url_for('issues.update_issue', key=issue.issue_key) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label class="form-label">Root Cause</label>
+                        <textarea name="root_cause" class="form-textarea" rows="3" placeholder="Document root cause findings...">{{ issue.root_cause or '' }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Resolution Notes</label>
+                        <textarea name="resolution_notes" class="form-textarea" rows="3" placeholder="Document fix details and verification notes...">{{ issue.resolution_notes or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">Save Investigation Notes</button>
+                </form>
+                {% else %}
+                {% if issue.root_cause %}<div class="detail-section"><h4>Root Cause</h4><p>{{ issue.root_cause }}</p></div>{% endif %}
+                {% if issue.resolution_notes %}<div class="detail-section"><h4>Resolution Notes</h4><p>{{ issue.resolution_notes }}</p></div>{% endif %}
+                {% if not issue.root_cause and not issue.resolution_notes %}<p class="text-muted">No investigation notes yet.</p>{% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Comments -->
+        <div class="card">
+            <div class="card-header"><h3>Comments ({{ issue.comments.count() }})</h3></div>
+            <div class="card-body">
+                {% for comment in issue.comments.all() %}
+                <div class="comment">
+                    <div class="comment-header">
+                        <div class="avatar avatar-sm">{{ comment.author.initials }}</div>
+                        <strong>{{ comment.author.full_name }}</strong>
+                        <span class="text-muted">{{ comment.created_at.strftime('%b %d, %Y at %H:%M') }}</span>
+                    </div>
+                    <div class="comment-body">{{ comment.body|nl2br }}</div>
+                </div>
+                {% endfor %}
+
+                <form method="POST" action="{{ url_for('issues.add_comment', key=issue.issue_key) }}" class="comment-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <textarea name="body" class="form-textarea" rows="3" required placeholder="Add a comment or status note..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="card">
+            <div class="card-header"><h3>Activity Timeline</h3></div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for act in issue.activities.all() %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <strong>{{ act.actor.full_name if act.actor else 'System' }}</strong>
+                            <span>{{ act.event_display }}</span>
+                            {% if act.field_name %}<span class="text-muted">{{ act.field_name }}: {{ act.old_value or '' }} → {{ act.new_value or '' }}</span>{% endif %}
+                            {% if act.details %}<small class="text-muted d-block">{{ act.details }}</small>{% endif %}
+                            <span class="timeline-time">{{ act.created_at.strftime('%b %d, %H:%M') }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issue Sidebar -->
+    <div class="issue-sidebar">
+        <!-- Workflow Actions -->
+        {% if available_transitions %}
+        <div class="card">
+            <div class="card-header"><h3>Workflow Transitions</h3></div>
+            <div class="card-body">
+                {% for transition in available_transitions %}
+                <form method="POST" action="{{ url_for('issues.transition_issue', key=issue.issue_key) }}" style="margin-bottom:8px">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="target_status" value="{{ transition }}">
+                    <button type="submit" class="btn btn-sm btn-block btn-secondary">
+                        Move to {{ transition|replace('_',' ')|title }}
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Issue Details -->
+        <div class="card">
+            <div class="card-header"><h3>Metadata</h3></div>
+            <div class="card-body issue-details-list">
+                <div class="detail-row"><span class="detail-label">Status</span><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></div>
+                <div class="detail-row">
+                    <span class="detail-label">Assignee</span>
+                    <span>{{ issue.assignee.full_name if issue.assignee else 'Unassigned' }}</span>
+                </div>
+                {% if current_user.is_admin or current_user.is_developer %}
+                <form method="POST" action="{{ url_for('issues.assign_issue', key=issue.issue_key) }}" class="detail-row-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="assignee_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Unassigned</option>
+                        {% for u in assignable_users %}<option value="{{ u.id }}" {{ 'selected' if issue.assignee_id == u.id }}>{{ u.full_name }}</option>{% endfor %}
+                    </select>
+                </form>
+                {% endif %}
+                <div class="detail-row"><span class="detail-label">Reporter</span><span>{{ issue.reporter.full_name if issue.reporter else '—' }}</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><a href="{{ url_for('projects.view_project', project_id=issue.project_id) }}">{{ issue.project.name }}</a></div>
+                <div class="detail-row"><span class="detail-label">Component</span><span>{{ issue.component or '—' }}</span></div>
+                <div class="detail-row"><span class="detail-label">Environment</span><span>{{ issue.environment or '—' }}</span></div>
+                <div class="detail-row"><span class="detail-label">Category</span><span>{{ issue.category_display }}</span></div>
+                {% if issue.sprint %}
+                <div class="detail-row"><span class="detail-label">Sprint</span><a href="{{ url_for('sprints.view_sprint', sprint_id=issue.sprint.id) }}">{{ issue.sprint.name }}</a></div>
+                {% endif %}
+                <div class="detail-divider"></div>
+                <div class="detail-row"><span class="detail-label">Created</span><span class="text-muted mono">{{ issue.created_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
+                <div class="detail-row"><span class="detail-label">Updated</span><span class="text-muted mono">{{ issue.updated_at.strftime('%Y-%m-%d %H:%M') if issue.updated_at else '—' }}</span></div>
+                {% if issue.resolved_at %}
+                <div class="detail-row"><span class="detail-label">Resolved</span><span class="text-muted mono">{{ issue.resolved_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Attachments -->
+        <div class="card">
+            <div class="card-header"><h3>Attachments</h3></div>
+            <div class="card-body">
+                {% for att in issue.attachments.all() %}
+                <div class="attachment-item">
+                    <a href="{{ url_for('static', filename='uploads/' + att.stored_filename) }}" target="_blank">{{ att.original_filename }}</a>
+                    <small class="text-muted">({{ (att.file_size / 1024)|round(1) }} KB)</small>
+                </div>
+                {% else %}
+                <p class="text-muted">No attachments uploaded.</p>
+                {% endfor %}
+                <form method="POST" action="{{ url_for('issues.upload_attachment', key=issue.issue_key) }}" enctype="multipart/form-data" style="margin-top:8px">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="file" name="file" class="form-input form-input-sm">
+                    <button type="submit" class="btn btn-sm btn-secondary" style="margin-top:6px">Upload File</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resolution Assistance -->
+        {% if suggestions and suggestions.has_suggestions %}
+        <div class="card">
+            <div class="card-header"><h3>Resolution Assistance</h3></div>
+            <div class="card-body">
+                <div class="suggestion-section">
+                    <h4>Automated Classification</h4>
+                    <p><strong>Category:</strong> {{ suggestions.classification.suggested_category|replace('_',' ')|title }} <span class="text-muted">({{ suggestions.classification.category_confidence|int }}% confidence)</span></p>
+                    <p class="text-muted text-sm">{{ suggestions.classification.category_reason }}</p>
+                    <p style="margin-top:6px"><strong>Recommended Priority:</strong> {{ suggestions.classification.suggested_priority|title }}</p>
+                    <p class="text-muted text-sm">{{ suggestions.classification.priority_reason }}</p>
+                </div>
+                <div class="suggestion-section">
+                    <h4>Initial Debugging Steps</h4>
+                    <ol class="suggestion-list">
+                        {% for step in suggestions.debugging_steps[:5] %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% if suggestions.related_issues %}
+                <div class="suggestion-section">
+                    <h4>Potential Duplicates &amp; Related</h4>
+                    {% for ri in suggestions.related_issues %}
+                    <div class="related-issue">
+                        <a href="{{ url_for('issues.view_issue', key=ri.issue_key) }}" class="mono">{{ ri.issue_key }}</a>
+                        <span>{{ ri.title|truncate(35) }}</span>
+                        <span class="badge badge-status badge-{{ ri.status|replace('_','-') }}">{{ ri.status|replace('_',' ')|title }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/issues.js') }}"></script>{% endblock %}

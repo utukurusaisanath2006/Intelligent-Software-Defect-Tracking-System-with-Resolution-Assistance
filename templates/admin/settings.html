@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}System Settings — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Settings</span>{% endblock %}
+{% block page_title %}System Configuration{% endblock %}
+
+{% block content %}
+<div class="content-grid">
+    <div class="card">
+        <div class="card-header"><h3>Runtime Parameters</h3></div>
+        <div class="card-body issue-details-list">
+            <div class="detail-row"><span class="detail-label">Pagination Default</span><span class="mono">{{ app_config.ITEMS_PER_PAGE }} items / page</span></div>
+            <div class="detail-row"><span class="detail-label">Max Upload Size</span><span class="mono">{{ (app_config.MAX_CONTENT_LENGTH / (1024 * 1024))|round(1) }} MB</span></div>
+            <div class="detail-row"><span class="detail-label">Allowed Extensions</span><span class="mono">{{ app_config.ALLOWED_EXTENSIONS|join(', ') }}</span></div>
+            <div class="detail-row"><span class="detail-label">CSRF Protection</span><span class="badge badge-status badge-resolved">{{ 'Enabled' if app_config.WTF_CSRF_ENABLED else 'Disabled' }}</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>Workflow Lifecycle Policy</h3></div>
+        <div class="card-body">
+            <p class="text-muted text-sm" style="margin-bottom:12px">Enforced server-side by <code>WorkflowService</code>:</p>
+            <div class="mono text-sm" style="line-height:1.8">
+                Reported &rarr; Triaging &rarr; Assigned &rarr; In Progress &rarr; Code Review &rarr; QA Verification &rarr; Resolved &rarr; Closed
+            </div>
+            <p class="text-muted text-sm" style="margin-top:12px">Failed verifications return cleanly from <code>qa_verification</code> to <code>in_progress</code>.</p>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+    <div class="card-header"><h3>External Integrations (Planned Extensions)</h3></div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-compact">
+                <thead><tr><th>Integration</th><th>Status</th><th>Notes</th></tr></thead>
+                <tbody>
+                    <tr><td>External LLM / AI Provider</td><td><span class="badge badge-status badge-closed">Not Configured</span></td><td class="text-muted">Deterministic rule-based ResolutionAssistant is currently active.</td></tr>
+                    <tr><td>SMTP Email Dispatch</td><td><span class="badge badge-status badge-closed">Not Configured</span></td><td class="text-muted">In-app notification feed is active.</td></tr>
+                    <tr><td>GitHub / CI-CD Webhooks</td><td><span class="badge badge-status badge-closed">Planned</span></td><td class="text-muted">REST API v1 endpoints available for future webhook bridging.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

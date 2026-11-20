@@ -1,0 +1,51 @@
+{% extends "base_unauth.html" %}
+{% block title %}Register — IntelliTrack{% endblock %}
+{% block content %}
+<div class="auth-card">
+    <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h1 class="auth-title">IntelliTrack</h1>
+        <p class="auth-subtitle">Create Your Account</p>
+    </div>
+    <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" class="form-input" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="role">Role</label>
+            <select id="role" name="role" class="form-select">
+                <option value="reporter">Reporter / QA</option>
+                <option value="developer">Developer</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-input" required minlength="6">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-input" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+    </form>
+    <div class="auth-footer">
+        <p>Already have an account? <a href="{{ url_for('auth.login') }}">Sign In</a></p>
+    </div>
+</div>
+{% endblock %}

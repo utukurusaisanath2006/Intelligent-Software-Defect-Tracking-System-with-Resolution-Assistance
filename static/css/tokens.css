@@ -1,0 +1,80 @@
+/* IntelliTrack Design Tokens — Swiss Grid x Industrial Instrument x Editorial Minimalism */
+
+:root {
+  /* Core Surfaces */
+  --paper: #F4F1E9;
+  --surface: #FBFAF6;
+  --surface-muted: #EAE6DC;
+
+  /* Typography & Ink */
+  --ink: #22231F;
+  --ink-muted: #6F7068;
+  --ink-faint: #96968D;
+
+  /* Borders & Rules */
+  --line: #D3CFC4;
+  --line-strong: #89877D;
+
+  /* Primary Accent (Restrained Signal Orange) */
+  --accent: #E76F32;
+  --accent-hover: #C95623;
+  --accent-soft: #F7E2D5;
+
+  /* Semantic Status Palette */
+  --status-open: #476D8A;
+  --status-open-soft: #E5EDF2;
+  --status-progress: #B67B25;
+  --status-progress-soft: #F4EAD9;
+  --status-resolved: #48745A;
+  --status-resolved-soft: #E2ECE6;
+  --status-closed: #74766F;
+  --status-closed-soft: #EAEAE7;
+  --status-critical: #B33A32;
+  --status-critical-soft: #F6E0DE;
+
+  /* Typography */
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  /* Type Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Layout Dimensions */
+  --sidebar-width: 244px;
+  --topbar-height: 64px;
+
+  /* Geometry */
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+
+  /* Subtle Depth */
+  --shadow-sm: 0 1px 2px rgba(34, 35, 31, 0.05);
+  --shadow-md: 0 4px 12px rgba(34, 35, 31, 0.08);
+
+  /* Motion */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+
+  /* Z-index layers */
+  --z-base: 1;
+  --z-sidebar: 40;
+  --z-topbar: 30;
+  --z-dropdown: 60;
+  --z-modal: 100;
+  --z-toast: 120;
+}

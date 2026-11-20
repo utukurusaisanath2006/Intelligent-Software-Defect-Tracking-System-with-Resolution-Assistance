@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ sprint.name }} — IntelliTrack{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('sprints.list_sprints') }}" class="breadcrumb-item">Sprints</a>
+<span class="breadcrumb-sep">/</span>
+<span class="breadcrumb-item">{{ sprint.name }}</span>
+{% endblock %}
+{% block page_title %}{{ sprint.name }}{% endblock %}
+{% block page_subtitle %}<span class="badge badge-{{ sprint.status }}">{{ sprint.status|title }}</span> — {{ sprint.project.name }}{% endblock %}
+
+{% block page_actions %}
+{% if sprint.status == 'planning' %}
+<form method="POST" action="{{ url_for('sprints.update_sprint_status', sprint_id=sprint.id) }}" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="status" value="active">
+    <button type="submit" class="btn btn-primary">Start Sprint</button>
+</form>
+{% elif sprint.status == 'active' %}
+<form method="POST" action="{{ url_for('sprints.update_sprint_status', sprint_id=sprint.id) }}" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="status" value="completed">
+    <button type="submit" class="btn btn-secondary">Complete Sprint</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if metrics %}
+<div class="metrics-grid">
+    <div class="stat-card"><div class="stat-value">{{ metrics.total_issues }}</div><div class="stat-label">Total Issues</div></div>
+    <div class="stat-card stat-card-success"><div class="stat-value">{{ metrics.completed }}</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card stat-card-warning"><div class="stat-value">{{ metrics.in_progress }}</div><div class="stat-label">In Progress</div></div>
+    <div class="stat-card"><div class="stat-value">{{ metrics.todo }}</div><div class="stat-label">To Do</div></div>
+    <div class="stat-card"><div class="stat-value">{{ metrics.completion_rate }}%</div><div class="stat-label">Completion Rate</div></div>
+</div>
+{% endif %}
+
+{% if sprint.goal %}
+<div class="content-section"><h2 class="section-title">Sprint Goal</h2><p>{{ sprint.goal }}</p></div>
+{% endif %}
+
+<div class="content-section">
+    <h2 class="section-title">Sprint Issues</h2>
+    {% if issues %}
+    <div class="table-responsive">
+        <table class="table table-hover table-compact">
+            <thead><tr><th>Key</th><th>Title</th><th>Severity</th><th>Priority</th><th>Status</th><th>Assignee</th></tr></thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr onclick="window.location='{{ url_for('issues.view_issue', key=issue.issue_key) }}'" style="cursor:pointer">
+                    <td><span class="mono">{{ issue.issue_key }}</span></td>
+                    <td>{{ issue.title|truncate(50) }}</td>
+                    <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                    <td><span class="badge badge-priority badge-{{ issue.priority }}">{{ issue.priority|title }}</span></td>
+                    <td><span class="badge badge-status badge-{{ issue.status|replace('_','-') }}">{{ issue.status_display }}</span></td>
+                    <td>{{ issue.assignee.full_name if issue.assignee else 'Unassigned' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state-sm"><p>No issues added to this sprint yet.</p></div>
+    {% endif %}
+</div>
+
+{% if backlog_issues and (current_user.is_admin or current_user.is_developer) %}
+<div class="content-section">
+    <h2 class="section-title">Project Backlog (Unassigned to Sprint)</h2>
+    <div class="table-responsive">
+        <table class="table table-compact">
+            <thead><tr><th>Key</th><th>Title</th><th>Severity</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for issue in backlog_issues[:10] %}
+                <tr>
+                    <td><span class="mono">{{ issue.issue_key }}</span></td>
+                    <td>{{ issue.title|truncate(50) }}</td>
+                    <td><span class="badge badge-severity badge-{{ issue.severity }}">{{ issue.severity|title }}</span></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('sprints.add_issue_to_sprint', sprint_id=sprint.id) }}" style="display:inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                            <button type="submit" class="btn btn-sm btn-secondary">Add to Sprint</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

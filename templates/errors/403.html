@@ -1,0 +1,9 @@
+{% extends "base_unauth.html" %}
+{% block title %}403 Forbidden — IntelliTrack{% endblock %}
+{% block content %}
+<div class="error-page">
+    <h1 class="error-code">403</h1>
+    <p class="error-message">You don't have permission to access this resource.</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Back to Dashboard</a>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit User' if is_edit else 'Create User' }} — IntelliTrack{% endblock %}
+{% block breadcrumb %}
+<a href="{{ url_for('admin.users') }}" class="breadcrumb-item">Users</a>
+<span class="breadcrumb-sep">/</span>
+<span class="breadcrumb-item">{{ 'Edit' if is_edit else 'New' }}</span>
+{% endblock %}
+{% block page_title %}{{ 'Edit User: ' + user.full_name if is_edit else 'Create New User' }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:640px">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) if is_edit else url_for('admin.create_user') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" class="form-input" value="{{ user.first_name if is_edit else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" class="form-input" value="{{ user.last_name if is_edit else '' }}" required>
+                </div>
+            </div>
+
+            {% if not is_edit %}
+            <div class="form-group">
+                <label class="form-label" for="username">Username *</label>
+                <input type="text" id="username" name="username" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address *</label>
+                <input type="email" id="email" name="email" class="form-input" required>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" value="{{ user.username }}" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" value="{{ user.email }}" disabled>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label" for="role">Role</label>
+                <select id="role" name="role" class="form-select">
+                    {% for r in valid_roles %}
+                    <option value="{{ r }}" {{ 'selected' if is_edit and user.role == r }}>{{ r|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">{{ 'Reset Password (optional)' if is_edit else 'Password *' }}</label>
+                <input type="password" id="password" name="password" class="form-input" {{ '' if is_edit else 'required' }} minlength="6" placeholder="{{ 'Leave blank to keep existing' if is_edit else 'Minimum 6 characters' }}">
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button type="submit" class="btn btn-primary">{{ 'Save Changes' if is_edit else 'Create User' }}</button>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

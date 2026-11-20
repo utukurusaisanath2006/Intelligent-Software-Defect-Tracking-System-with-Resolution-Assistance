@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Users &amp; Roles — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Users</span>{% endblock %}
+{% block page_title %}Users &amp; Roles{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">Add User</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('admin.users') }}" class="filter-form">
+        <div class="filter-group">
+            <input type="text" name="q" class="form-input" placeholder="Search name, username, email..." value="{{ search or '' }}">
+        </div>
+        <div class="filter-group">
+            <select name="role" class="form-select form-select-sm">
+                <option value="">All Roles</option>
+                {% for r in valid_roles %}<option value="{{ r }}" {{ 'selected' if role_filter == r }}>{{ r|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="active" class="form-select form-select-sm">
+                <option value="">All Statuses</option>
+                <option value="1" {{ 'selected' if active_filter == '1' }}>Active</option>
+                <option value="0" {{ 'selected' if active_filter == '0' }}>Inactive</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-sm">Clear</a>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-compact">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div class="avatar avatar-sm">{{ u.initials }}</div>
+                        <strong>{{ u.full_name }}</strong>
+                    </div>
+                </td>
+                <td><span class="mono">{{ u.username }}</span></td>
+                <td>{{ u.email }}</td>
+                <td><span class="badge badge-role badge-{{ u.role }}">{{ u.role|title }}</span></td>
+                <td>
+                    {% if u.is_active %}
+                    <span class="badge badge-status badge-resolved">Active</span>
+                    {% else %}
+                    <span class="badge badge-status badge-closed">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted mono">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <div style="display:flex;gap:6px">
+                        <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                        {% if u.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}" style="display:inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.is_active else 'btn-secondary' }}">
+                                {{ 'Deactivate' if u.is_active else 'Activate' }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-muted" style="text-align:center;padding:24px">No users match your filter criteria.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

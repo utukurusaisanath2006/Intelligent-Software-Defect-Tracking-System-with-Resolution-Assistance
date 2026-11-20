@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Audit &amp; Activity Log — IntelliTrack{% endblock %}
+{% block breadcrumb %}<span class="breadcrumb-item">Admin</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-item">Activity Log</span>{% endblock %}
+{% block page_title %}Audit &amp; Activity Log{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('admin.activity_log') }}" class="filter-form">
+        <div class="filter-group">
+            <select name="event_type" class="form-select form-select-sm">
+                <option value="">All Event Types</option>
+                {% for evt in ['created', 'updated', 'status_changed', 'assigned', 'commented', 'user_created', 'user_updated', 'project_created', 'project_updated'] %}
+                <option value="{{ evt }}" {{ 'selected' if selected_event == evt }}>{{ evt|replace('_',' ')|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select name="actor_id" class="form-select form-select-sm">
+                <option value="">All Actors</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {{ 'selected' if selected_actor_id == u.id }}>{{ u.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        <a href="{{ url_for('admin.activity_log') }}" class="btn btn-sm">Clear</a>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-compact">
+        <thead>
+            <tr>
+                <th>Timestamp (UTC)</th>
+                <th>Actor</th>
+                <th>Event</th>
+                <th>Target</th>
+                <th>Change / Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in activities %}
+            <tr>
+                <td class="mono text-muted text-nowrap">{{ act.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td><strong>{{ act.actor.full_name if act.actor else 'System' }}</strong></td>
+                <td><span class="badge badge-type">{{ act.event_display }}</span></td>
+                <td>
+                    {% if act.issue %}
+                    <a href="{{ url_for('issues.view_issue', key=act.issue.issue_key) }}" class="mono">{{ act.issue.issue_key }}</a>
+                    {% elif act.project_rel %}
+                    <span class="mono">{{ act.project_rel.key }}</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if act.field_name %}
+                    <span class="mono">{{ act.field_name }}</span>: <span class="text-muted">{{ act.old_value or '—' }}</span> &rarr; <strong>{{ act.new_value or '—' }}</strong>
+                    {% endif %}
+                    {% if act.details %}
+                    <div class="text-muted text-sm">{{ act.details }}</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-muted" style="text-align:center;padding:24px">No audit events match your criteria.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination-wrapper">
+    <span class="text-muted">Showing {{ activities|length }} of {{ pagination.total }} events</span>
+    {% include 'components/pagination.html' %}
+</div>
+{% endblock %}
