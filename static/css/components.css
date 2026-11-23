@@ -38,14 +38,15 @@
 }
 
 .btn-primary {
-  background-color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--surface-teal);
+  border-color: var(--surface-teal);
   color: #FFFFFF;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background-color: var(--surface-teal-dark);
+  border-color: var(--surface-teal-dark);
   color: #FFFFFF;
 }
 
@@ -53,6 +54,25 @@
   background-color: var(--surface);
   border-color: var(--line);
   color: var(--ink);
+}
+
+.btn-secondary:hover {
+  background-color: var(--surface-muted);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.btn-accent {
+  background-color: var(--neon-lime);
+  border-color: var(--neon-lime);
+  color: var(--ink-on-lime);
+  font-weight: 700;
+}
+
+.btn-accent:hover {
+  background-color: var(--neon-lime-hover);
+  border-color: var(--neon-lime-hover);
+  color: var(--ink-on-lime);
 }
 
 .btn-danger {
@@ -203,66 +223,68 @@
 .badge-reported, .badge-triaging, .badge-assigned {
   background-color: var(--status-open-soft);
   color: var(--status-open);
-  border-color: rgba(71, 109, 138, 0.25);
+  border-color: rgba(11, 48, 72, 0.22);
 }
 
 .badge-in-progress, .badge-code-review, .badge-qa-verification, .badge-active, .badge-planning {
-  background-color: var(--status-progress-soft);
-  color: var(--status-progress);
-  border-color: rgba(182, 123, 37, 0.25);
+  background-color: var(--neon-lime-soft);
+  color: #264D07;
+  border-color: rgba(185, 241, 47, 0.65);
 }
 
 .badge-resolved, .badge-completed, .badge-success {
   background-color: var(--status-resolved-soft);
   color: var(--status-resolved);
-  border-color: rgba(72, 116, 90, 0.25);
+  border-color: rgba(24, 104, 59, 0.25);
 }
 
 .badge-closed, .badge-muted {
   background-color: var(--status-closed-soft);
   color: var(--status-closed);
-  border-color: rgba(116, 118, 111, 0.25);
+  border-color: rgba(90, 106, 116, 0.25);
 }
 
 .badge-reopened {
   background-color: var(--status-critical-soft);
   color: var(--status-critical);
-  border-color: rgba(179, 58, 50, 0.25);
+  border-color: rgba(179, 38, 30, 0.25);
 }
 
 /* Severities */
 .badge-critical {
   background-color: var(--status-critical-soft);
   color: var(--status-critical);
-  border-color: rgba(179, 58, 50, 0.35);
+  border-color: rgba(179, 38, 30, 0.35);
 }
 
 .badge-major {
-  background-color: var(--accent-soft);
-  color: var(--accent-hover);
-  border-color: rgba(231, 111, 50, 0.35);
+  background-color: #FFF2DD;
+  color: #9A5806;
+  border-color: rgba(154, 88, 6, 0.35);
 }
 
 .badge-minor {
   background-color: var(--status-open-soft);
   color: var(--status-open);
+  border-color: rgba(11, 48, 72, 0.22);
 }
 
 .badge-trivial {
   background-color: var(--surface-muted);
   color: var(--ink-muted);
+  border-color: var(--line);
 }
 
 /* Priorities */
 .badge-urgent { color: var(--status-critical); border-color: var(--status-critical); }
-.badge-high { color: var(--accent-hover); border-color: var(--accent); }
-.badge-medium { color: var(--status-progress); border-color: var(--line); }
+.badge-high { color: #9A5806; border-color: #DDA13B; }
+.badge-medium { color: #49630A; border-color: #A3C527; }
 .badge-low { color: var(--ink-muted); border-color: var(--line); }
 
 /* Roles */
-.badge-admin { background-color: var(--ink); color: var(--surface); }
-.badge-developer { background-color: var(--status-open-soft); color: var(--status-open); }
-.badge-reporter { background-color: var(--status-resolved-soft); color: var(--status-resolved); }
+.badge-admin { background-color: var(--surface-teal); color: #FFFFFF; border-color: var(--surface-teal); }
+.badge-developer { background-color: var(--status-open-soft); color: var(--status-open); border-color: rgba(11, 48, 72, 0.25); }
+.badge-reporter { background-color: var(--status-resolved-soft); color: var(--status-resolved); border-color: rgba(24, 104, 59, 0.25); }
 
 /* ==================== Forms & Filter Bars ==================== */
 .form-group {
@@ -301,7 +323,8 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--surface-teal);
+  box-shadow: 0 0 0 2px rgba(11, 48, 72, 0.12);
 }
 
 .form-input-sm,
@@ -368,17 +391,18 @@
   width: 240px;
   padding: 6px 10px 6px 32px;
   font-size: var(--text-sm);
-  background-color: var(--paper);
+  background-color: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--ink);
-  transition: width var(--transition-fast), border-color var(--transition-fast);
+  transition: width var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .search-input:focus {
   outline: none;
   width: 300px;
-  border-color: var(--accent);
+  border-color: var(--surface-teal);
+  box-shadow: 0 0 0 2px rgba(185, 241, 47, 0.45);
   background-color: var(--surface);
 }
 
@@ -439,13 +463,14 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 99px;
-  background-color: var(--accent);
-  color: #fff;
+  background-color: var(--neon-lime);
+  color: var(--ink-on-lime);
   font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 2px var(--surface);
 }
 
 .notification-panel {
@@ -486,7 +511,8 @@
 }
 
 .notification-item.unread {
-  background-color: var(--accent-soft);
+  background-color: rgba(185, 241, 47, 0.08);
+  border-left: 3px solid var(--neon-lime);
 }
 
 .topbar-user-btn {
@@ -551,8 +577,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--ink);
-  color: var(--surface);
+  background-color: var(--surface-teal);
+  color: #FFFFFF;
   font-family: var(--font-mono);
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -574,7 +600,7 @@
 }
 
 .issue-key-lg {
-  color: var(--accent);
+  color: var(--surface-teal);
   font-weight: 700;
 }
 
@@ -780,8 +806,8 @@
 .page-link:hover { background-color: var(--surface-muted); }
 
 .page-link.active {
-  background-color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--surface-teal);
+  border-color: var(--surface-teal);
   color: #fff;
   font-weight: 600;
 }
@@ -847,7 +873,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(34, 35, 31, 0.45);
+  background-color: rgba(7, 33, 50, 0.55);
 }
 
 .modal-content {
@@ -924,4 +950,22 @@
   position: relative;
   height: 260px;
   width: 100%;
+}
+
+/* ==================== Progress Bars ==================== */
+.progress {
+  height: 6px;
+  background-color: var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--surface-teal);
+  transition: width var(--transition-normal);
+}
+
+.progress-bar-lime {
+  background-color: var(--neon-lime);
 }

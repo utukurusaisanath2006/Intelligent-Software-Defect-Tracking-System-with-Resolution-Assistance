@@ -1,6 +1,7 @@
 """Application configuration classes."""
 
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,6 +22,12 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
     ITEMS_PER_PAGE = 20
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'log', 'zip'}
+
+    # Session cookie hardening & sliding idle expiration
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = False
 
     # Email / SMTP configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
@@ -52,6 +59,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
+    SESSION_COOKIE_SECURE = True
     MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', 'false').lower() in ('true', '1', 'yes')
 
 

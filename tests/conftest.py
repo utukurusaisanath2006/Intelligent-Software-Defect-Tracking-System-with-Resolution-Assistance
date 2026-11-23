@@ -26,23 +26,37 @@ def client(app):
     return app.test_client()
 
 
+# Precomputed hash for test password 'secret123' to avoid plaintext passwords and repetitive runtime hashing
+TEST_PASSWORD_HASH = 'scrypt:32768:8:1$Gm2nevbIVnfRfnq6$e9c18d77cb2356dbbe0fe27d7291e8cd40bd62cb603c4b3e75618858ed9ce575a91b4f19de067f6b0edf78f95dc77fdc2937e9b7b813cd1d82ceecd96945ba4e'
+
+
 @pytest.fixture(scope='function')
 def sample_data(app):
     """Seed users, projects, memberships, sprint, and sample issues."""
-    admin = User(username='admin_t', email='admin@test.dev', first_name='Admin', last_name='User', role=User.ROLE_ADMIN, is_active=True)
-    admin.set_password('secret123')
+    admin = User(
+        username='admin_t', email='admin@test.dev', password_hash=TEST_PASSWORD_HASH,
+        first_name='Admin', last_name='User', role=User.ROLE_ADMIN, is_active=True
+    )
 
-    dev = User(username='dev_t', email='dev@test.dev', first_name='Dev', last_name='Engineer', role=User.ROLE_DEVELOPER, is_active=True)
-    dev.set_password('secret123')
+    dev = User(
+        username='dev_t', email='dev@test.dev', password_hash=TEST_PASSWORD_HASH,
+        first_name='Dev', last_name='Engineer', role=User.ROLE_DEVELOPER, is_active=True
+    )
 
-    reporter = User(username='rep_t', email='reporter@test.dev', first_name='QA', last_name='Tester', role=User.ROLE_REPORTER, is_active=True)
-    reporter.set_password('secret123')
+    reporter = User(
+        username='rep_t', email='reporter@test.dev', password_hash=TEST_PASSWORD_HASH,
+        first_name='QA', last_name='Tester', role=User.ROLE_REPORTER, is_active=True
+    )
 
-    outsider = User(username='out_t', email='outsider@test.dev', first_name='Out', last_name='Sider', role=User.ROLE_REPORTER, is_active=True)
-    outsider.set_password('secret123')
+    outsider = User(
+        username='out_t', email='outsider@test.dev', password_hash=TEST_PASSWORD_HASH,
+        first_name='Out', last_name='Sider', role=User.ROLE_REPORTER, is_active=True
+    )
 
-    inactive = User(username='inact_t', email='inactive@test.dev', first_name='In', last_name='Active', role=User.ROLE_REPORTER, is_active=False)
-    inactive.set_password('secret123')
+    inactive = User(
+        username='inact_t', email='inactive@test.dev', password_hash=TEST_PASSWORD_HASH,
+        first_name='In', last_name='Active', role=User.ROLE_REPORTER, is_active=False
+    )
 
     _db.session.add_all([admin, dev, reporter, outsider, inactive])
     _db.session.flush()

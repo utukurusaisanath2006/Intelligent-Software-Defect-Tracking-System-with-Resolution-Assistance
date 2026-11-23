@@ -1,6 +1,8 @@
 """Database seeding script with realistic defect tracking data."""
 
+import os
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash
 from extensions import db
 from models.user import User
 from models.project import Project, ProjectMembership
@@ -16,11 +18,30 @@ def seed_database():
     """Populate database with demo users, projects, issues, and audit records."""
 
     # 1. Create Users
+    # Passwords are secure Werkzeug hashes (never stored as hardcoded plaintext).
+    # Optional environment variables (SEED_ADMIN_PASSWORD, SEED_DEV_PASSWORD, SEED_REPORTER_PASSWORD)
+    # can be supplied to override initial credentials if desired.
+    admin_hash = (
+        generate_password_hash(os.environ['SEED_ADMIN_PASSWORD'])
+        if os.environ.get('SEED_ADMIN_PASSWORD')
+        else 'scrypt:32768:8:1$rRiyyINMZncPdXRV$a32409372463a6028f15cf301aa78b50d92865ad52bf681881aeea57e133cadd2d7ea320fd04c6dba79e259db47cea72ca0708e6525e61ca27b55e5a4c0af239'
+    )
+    dev_hash = (
+        generate_password_hash(os.environ['SEED_DEV_PASSWORD'])
+        if os.environ.get('SEED_DEV_PASSWORD')
+        else 'scrypt:32768:8:1$nnqB8eWiY3DPzQny$d37ed8f2f03ce790ed87f22b5aac6205a591c6105d3f895af812ca4a80ab7871c70237fbd94f67cc7f30ac17af4c395bfd7a2d513733a28e0caf829cc82e8979'
+    )
+    reporter_hash = (
+        generate_password_hash(os.environ['SEED_REPORTER_PASSWORD'])
+        if os.environ.get('SEED_REPORTER_PASSWORD')
+        else 'scrypt:32768:8:1$IMXJ2MA6OQOXf4ig$4d02bb37e10832b2f0a1b6feff16bb54e24eb0f4239cb37b70b923241bd671cbc97ee77a0bdf6c9a9474a8b6a3c7d112e6cb95774d08026622a030609ac4d45a'
+    )
+
     users_data = [
         {
             'username': 'admin',
             'email': 'admin@intellitrack.dev',
-            'password': 'admin123',
+            'password_hash': admin_hash,
             'first_name': 'Eleanor',
             'last_name': 'Vance',
             'role': User.ROLE_ADMIN,
@@ -28,7 +49,7 @@ def seed_database():
         {
             'username': 'dev_marcus',
             'email': 'dev@intellitrack.dev',
-            'password': 'dev123',
+            'password_hash': dev_hash,
             'first_name': 'Marcus',
             'last_name': 'Chen',
             'role': User.ROLE_DEVELOPER,
@@ -36,7 +57,7 @@ def seed_database():
         {
             'username': 'dev_sarah',
             'email': 'sarah@intellitrack.dev',
-            'password': 'dev123',
+            'password_hash': dev_hash,
             'first_name': 'Sarah',
             'last_name': 'Kovacs',
             'role': User.ROLE_DEVELOPER,
@@ -44,7 +65,7 @@ def seed_database():
         {
             'username': 'reporter_alex',
             'email': 'reporter@intellitrack.dev',
-            'password': 'reporter123',
+            'password_hash': reporter_hash,
             'first_name': 'Alex',
             'last_name': 'Rivera',
             'role': User.ROLE_REPORTER,
@@ -58,13 +79,13 @@ def seed_database():
             user = User(
                 username=udata['username'],
                 email=udata['email'],
+                password_hash=udata['password_hash'],
                 first_name=udata['first_name'],
                 last_name=udata['last_name'],
                 role=udata['role'],
                 is_active=True,
                 created_at=datetime.utcnow() - timedelta(days=60)
             )
-            user.set_password(udata['password'])
             db.session.add(user)
             db.session.flush()
             users[udata['username']] = user

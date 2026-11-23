@@ -30,6 +30,29 @@ def check_project_access(project_id):
     ).first() is not None
 
 
+def validate_magic_bytes(file_path, ext):
+    """Inspect file header magic bytes to verify content matches claimed extension and block executables."""
+    signatures = {
+        'png': [b'\x89PNG\r\n\x1a\n'],
+        'jpg': [b'\xff\xd8\xff'],
+        'jpeg': [b'\xff\xd8\xff'],
+        'gif': [b'GIF87a', b'GIF89a'],
+        'pdf': [b'%PDF-'],
+        'zip': [b'PK\x03\x04'],
+    }
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(32)
+            # Block executable binaries and dangerous scripts disguised as uploads
+            if header.startswith((b'MZ', b'\x7fELF', b'\xca\xfe\xba\xbe', b'#!/bin/', b'<?php')):
+                return False
+            if ext in signatures:
+                return any(header.startswith(sig) for sig in signatures[ext])
+            return True
+    except Exception:
+        return False
+
+
 @issues_bp.route('/')
 @login_required
 def list_issues():
@@ -416,6 +439,16 @@ def upload_attachment(key):
     unique_name = f"{issue.issue_key}_{int(issue.created_at.timestamp())}_{filename}"
     dest = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
     file.save(dest)
+
+    if not validate_magic_bytes(dest, ext):
+        try:
+            os.remove(dest)
+        except OSError:
+            pass
+        current_app.logger.warning(f"Security Alert: Disguised or executable file upload rejected: {filename} from ip={request.remote_addr}")
+        flash('Upload rejected: File content does not match its declared format or contains disallowed binary content.', 'error')
+        return redirect(url_for('issues.view_issue', key=key))
+
     file_size = os.path.getsize(dest)
 
     attachment = Attachment(
@@ -478,10 +511,13 @@ def download_attachment(key, attachment_id):
         else:
             abort(404)
 
-    return send_from_directory(
+    response = send_from_directory(
         directory=upload_folder,
         path=safe_stored_name,
         as_attachment=True,
         download_name=attachment.original_filename,
         mimetype=attachment.content_type
     )
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Download-Options'] = 'noopen'
+    return response

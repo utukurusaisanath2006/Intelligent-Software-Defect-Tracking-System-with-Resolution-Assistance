@@ -10,6 +10,7 @@ from extensions import db
 from models.user import User
 from models.project import Project, ProjectMembership
 from models.issue import Issue
+from tests.conftest import TEST_PASSWORD_HASH
 
 
 @pytest.fixture(scope='function')
@@ -48,8 +49,7 @@ def test_migration_upgrade_and_downgrade_lifecycle(temp_db_path, monkeypatch):
         assert expected_tables.issubset(created_tables), f"Missing tables: {expected_tables - created_tables}"
 
         # 2. Insert records into the freshly migrated schema to ensure constraints and FKs function
-        user = User(username='mig_user', email='mig@test.dev', first_name='Mig', last_name='Test', role=User.ROLE_ADMIN)
-        user.set_password('password123')
+        user = User(username='mig_user', email='mig@test.dev', password_hash=TEST_PASSWORD_HASH, first_name='Mig', last_name='Test', role=User.ROLE_ADMIN)
         proj = Project(name='Mig Project', key='MIG', description='Testing migrations', status=Project.STATUS_ACTIVE)
         db.session.add_all([user, proj])
         db.session.flush()

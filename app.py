@@ -3,7 +3,7 @@
 import os
 import click
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, url_for, abort
+from flask import Flask, render_template, request, jsonify, url_for, abort, session
 from flask_login import current_user
 from markupsafe import Markup, escape
 from flask_wtf.csrf import CSRFError
@@ -81,11 +81,13 @@ def create_app(config_name=None):
             'url_for_page': url_for_page,
         }
 
-    # Block direct unauthenticated access to legacy static/uploads directory
+    # Block direct unauthenticated access to legacy static/uploads directory & manage session lifetime
     @app.before_request
-    def block_static_uploads():
+    def pre_request_security_check():
         if request.path.startswith('/static/uploads/'):
             abort(404)
+        if current_user.is_authenticated:
+            session.permanent = True
 
     # Security headers
     @app.after_request
@@ -93,18 +95,32 @@ def create_app(config_name=None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['X-Download-Options'] = 'noopen'
+        csp_policy = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "img-src 'self' data: https:; "
+            "script-src 'self' 'unsafe-inline'; "
+            "frame-ancestors 'self';"
+        )
+        response.headers['Content-Security-Policy'] = csp_policy
         return response
 
-    # Error handlers
+    # Error handlers & Security event logging
     @app.errorhandler(CSRFError)
     def handle_csrf_error(e):
         reason = getattr(e, 'description', 'CSRF token missing or invalid')
+        app.logger.warning(f"Security Alert: CSRF validation failure on {request.path} from ip={request.remote_addr}: {reason}")
         if request.path.startswith('/api/'):
             return jsonify({'success': False, 'error': f'CSRF validation failed: {reason}'}), 400
         return render_template('errors/400.html', error=reason), 400
 
     @app.errorhandler(403)
     def forbidden(e):
+        actor = current_user.username if (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated) else 'anonymous'
+        app.logger.warning(f"Security Alert: 403 Forbidden access attempt on {request.path} by user='{actor}' from ip={request.remote_addr}")
         if request.path.startswith('/api/'):
             return jsonify({'success': False, 'error': 'Forbidden: Insufficient permissions'}), 403
         return render_template('errors/403.html'), 403

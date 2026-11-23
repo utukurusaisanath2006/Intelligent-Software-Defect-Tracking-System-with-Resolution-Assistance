@@ -11,6 +11,7 @@ from extensions import db as _db
 from models.user import User
 from models.project import Project, ProjectMembership
 from models.issue import Issue
+from tests.conftest import TEST_PASSWORD_HASH
 
 
 @pytest.fixture(scope='function')
@@ -22,14 +23,11 @@ def csrf_app():
         _db.create_all()
 
         # Seed sample data
-        admin = User(username='admin_csrf', email='admin@csrf.dev', first_name='Admin', last_name='CSRF', role=User.ROLE_ADMIN, is_active=True)
-        admin.set_password('secret123')
+        admin = User(username='admin_csrf', email='admin@csrf.dev', password_hash=TEST_PASSWORD_HASH, first_name='Admin', last_name='CSRF', role=User.ROLE_ADMIN, is_active=True)
 
-        dev = User(username='dev_csrf', email='dev@csrf.dev', first_name='Dev', last_name='CSRF', role=User.ROLE_DEVELOPER, is_active=True)
-        dev.set_password('secret123')
+        dev = User(username='dev_csrf', email='dev@csrf.dev', password_hash=TEST_PASSWORD_HASH, first_name='Dev', last_name='CSRF', role=User.ROLE_DEVELOPER, is_active=True)
 
-        reporter = User(username='rep_csrf', email='reporter@csrf.dev', first_name='QA', last_name='CSRF', role=User.ROLE_REPORTER, is_active=True)
-        reporter.set_password('secret123')
+        reporter = User(username='rep_csrf', email='reporter@csrf.dev', password_hash=TEST_PASSWORD_HASH, first_name='QA', last_name='CSRF', role=User.ROLE_REPORTER, is_active=True)
 
         _db.session.add_all([admin, dev, reporter])
         _db.session.flush()

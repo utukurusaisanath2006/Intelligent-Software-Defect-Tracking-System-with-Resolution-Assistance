@@ -201,3 +201,52 @@ def test_admin_role_change_rejects_invalid_role(client, sample_data):
     updated_dev = User.query.get(dev.id)
     assert updated_dev.role == User.ROLE_DEVELOPER
 
+
+def test_password_hashing_security(app):
+    """Verify that passwords are never stored in plaintext and password properties are enforced."""
+    import pytest
+    from werkzeug.security import check_password_hash
+
+    # 1. Constructor automatic hashing
+    user = User(
+        username='hash_test_user',
+        email='hashtest@test.dev',
+        password='MySuperSecretPassword!123'
+    )
+    # Password column in DB must not be plaintext
+    assert user.password_hash != 'MySuperSecretPassword!123'
+    assert user.password_hash.startswith(('scrypt:', 'pbkdf2:'))
+    assert user.check_password('MySuperSecretPassword!123') is True
+    assert user.check_password('WrongPassword') is False
+
+    # 2. Raw password must not be readable (write-only property)
+    with pytest.raises(AttributeError):
+        _ = user.password
+
+    # 3. Setting password property triggers automatic re-hash
+    old_hash = user.password_hash
+    user.password = 'AnotherSecurePassword456'
+    assert user.password_hash != old_hash
+    assert user.password_hash != 'AnotherSecurePassword456'
+    assert user.check_password('AnotherSecurePassword456') is True
+    assert user.check_password('MySuperSecretPassword!123') is False
+
+
+def test_seed_database_users_have_secure_hashes(app):
+    """Verify database seeder loads users with hashed passwords and no plaintext credentials."""
+    from seed import seed_database
+    seed_database()
+
+    for email, plain_pw in [
+        ('admin@intellitrack.dev', 'admin123'),
+        ('dev@intellitrack.dev', 'dev123'),
+        ('sarah@intellitrack.dev', 'dev123'),
+        ('reporter@intellitrack.dev', 'reporter123'),
+    ]:
+        user = User.query.filter_by(email=email).first()
+        assert user is not None, f"User {email} not found"
+        assert user.password_hash != plain_pw, f"User {email} has plaintext password stored"
+        assert user.password_hash.startswith(('scrypt:', 'pbkdf2:'))
+        assert user.check_password(plain_pw) is True
+
+

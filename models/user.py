@@ -35,6 +35,23 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', backref='user', lazy='dynamic')
     memberships = db.relationship('ProjectMembership', backref='user', lazy='dynamic')
 
+    def __init__(self, **kwargs):
+        """Initialize User model, automatically hashing plaintext password if provided."""
+        raw_password = kwargs.pop('password', None)
+        super(User, self).__init__(**kwargs)
+        if raw_password:
+            self.set_password(raw_password)
+
+    @property
+    def password(self):
+        """Prevent direct reading of plain password."""
+        raise AttributeError("Password is a write-only property; raw passwords are not stored.")
+
+    @password.setter
+    def password(self, password):
+        """Automatically hash password when assigned."""
+        self.set_password(password)
+
     def set_password(self, password):
         """Hash and store password."""
         self.password_hash = generate_password_hash(password)
