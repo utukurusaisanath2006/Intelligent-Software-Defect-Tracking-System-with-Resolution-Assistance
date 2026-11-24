@@ -1,6 +1,9 @@
 """Database seeding script with realistic defect tracking data."""
 
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
 from extensions import db
 from models.user import User
 from models.project import Project, ProjectMembership
@@ -11,16 +14,53 @@ from models.sprint import Sprint
 from models.release import Release
 from models.notification import Notification
 
+load_dotenv()
+
+# Fallback hashes for development accounts if environment variables are not set
+# Default passwords: admin -> admin123, dev -> dev123, reporter -> reporter123
+DEFAULT_ADMIN_HASH = "scrypt:32768:8:1$a40PJiQ4zDLA7t11$67af35d4b2840a05c0025b09090bbe6f0fd8ae4dc03e7d1d8fb3dccf3e2a095335753abcfeb69e9fb5837692904394be6ab5f0a524a8616c8928b5f664cc4644"
+DEFAULT_DEV_HASH = "scrypt:32768:8:1$FN6v7VT09DhMcxXF$41084d066b30c3df04c8bd1049bf060066b50f293bc513d1a6047c0cb108b841e889522dee4abd0ce53aa343f166b736dac7b3a0392c5ec3f9c2d2ddd71f27cd"
+DEFAULT_REPORTER_HASH = "scrypt:32768:8:1$GPupfw3PlvgDzZA7$f7bd4406f76e40c8224dc65338b60a64456143ae27519c1a7346ef160e0475d8fa47e5af02d85dc09c2ef13456bac09712ff2372f9b73aae32d5464f4c5f65e7"
+
+
+def _resolve_password_hash(hash_env_keys, pwd_env_keys, fallback_hash):
+    """Resolve password hash from environment (plaintext to hash, or direct hash, or fallback)."""
+    for key in pwd_env_keys:
+        val = os.environ.get(key)
+        if val:
+            return generate_password_hash(val)
+    for key in hash_env_keys:
+        val = os.environ.get(key)
+        if val:
+            return val
+    return fallback_hash
+
 
 def seed_database():
     """Populate database with demo users, projects, issues, and audit records."""
+
+    admin_hash = _resolve_password_hash(
+        ['SEED_ADMIN_PASSWORD_HASH', 'ADMIN_PASSWORD_HASH'],
+        ['SEED_ADMIN_PASSWORD', 'ADMIN_PASSWORD'],
+        DEFAULT_ADMIN_HASH
+    )
+    dev_hash = _resolve_password_hash(
+        ['SEED_DEV_PASSWORD_HASH', 'DEV_PASSWORD_HASH'],
+        ['SEED_DEV_PASSWORD', 'DEV_PASSWORD'],
+        DEFAULT_DEV_HASH
+    )
+    reporter_hash = _resolve_password_hash(
+        ['SEED_REPORTER_PASSWORD_HASH', 'REPORTER_PASSWORD_HASH'],
+        ['SEED_REPORTER_PASSWORD', 'REPORTER_PASSWORD'],
+        DEFAULT_REPORTER_HASH
+    )
 
     # 1. Create Users
     users_data = [
         {
             'username': 'admin',
             'email': 'admin@intellitrack.dev',
-            'password': 'admin123',
+            'password_hash': admin_hash,
             'first_name': 'Eleanor',
             'last_name': 'Vance',
             'role': User.ROLE_ADMIN,
@@ -28,7 +68,7 @@ def seed_database():
         {
             'username': 'dev_marcus',
             'email': 'dev@intellitrack.dev',
-            'password': 'dev123',
+            'password_hash': dev_hash,
             'first_name': 'Marcus',
             'last_name': 'Chen',
             'role': User.ROLE_DEVELOPER,
@@ -36,7 +76,7 @@ def seed_database():
         {
             'username': 'dev_sarah',
             'email': 'sarah@intellitrack.dev',
-            'password': 'dev123',
+            'password_hash': dev_hash,
             'first_name': 'Sarah',
             'last_name': 'Kovacs',
             'role': User.ROLE_DEVELOPER,
@@ -44,7 +84,7 @@ def seed_database():
         {
             'username': 'reporter_alex',
             'email': 'reporter@intellitrack.dev',
-            'password': 'reporter123',
+            'password_hash': reporter_hash,
             'first_name': 'Alex',
             'last_name': 'Rivera',
             'role': User.ROLE_REPORTER,
@@ -64,11 +104,12 @@ def seed_database():
                 is_active=True,
                 created_at=datetime.utcnow() - timedelta(days=60)
             )
-            user.set_password(udata['password'])
+            user.password_hash = udata['password_hash']
             db.session.add(user)
             db.session.flush()
             users[udata['username']] = user
         else:
+            existing.password_hash = udata['password_hash']
             users[udata['username']] = existing
 
     admin_user = users['admin']
